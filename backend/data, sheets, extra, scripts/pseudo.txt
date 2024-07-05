@@ -1,0 +1,43 @@
+
+
+
+inputs to the algorithm/filter function: 
+1.) All possible routes from google maps
+2.) User preferences: weightings 
+
+routescore = x1.w1 + x2.w2 + x3.w3
+x1 = distance
+x2 = number of crimes
+x3 = areas with loadshedding
+
+prioritise avoiding crime: routescore = x1.1 + x2.2 + x3.1
+
+
+given route: need all street names
+
+
+        routes = get_routes_from_google_maps()
+        routescores = []
+        
+        for route in routes:
+            crimecounter = 0
+            loadshedding_counter = 0
+            distance = route.distance
+
+            for street in route:
+                crimecounter += street.crimes
+                loadshedding_counter += street.loadshedding
+
+            routescore = distance.w1 + crimecounter.w2 loadshedding_counter.w3
+            routescores.append(routescore)
+
+
+        ranked_routes = routescores.sort()
+
+        top3 = routescores[0:3]
+
+        
+
+
+
+
