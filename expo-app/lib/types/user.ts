@@ -1,1 +1,5 @@
-export default interface User {}
+import { FirebaseUser } from "../firebase/firebaseConfig";
+
+type User = FirebaseUser;
+
+export default User;
