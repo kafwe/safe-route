@@ -11,6 +11,7 @@ class Route:
         self.load_shedding_count = 0
         self.distance = 0
         self.polyline = ""
+        self.instructions = []  # New attribute to store instructions
 
     def add_street(self, street_name, crime_number, load_shedding_status):
         self.streets.append(street_name)
@@ -22,6 +23,9 @@ class Route:
     
     def set_polyline(self, polyline):
         self.polyline = polyline
+
+    def add_instruction(self, instruction):  # New method to add instructions
+        self.instructions.append(instruction)
 
 def get_routes(api_key, start_coords, end_coords):
     url = "https://routes.googleapis.com/directions/v2:computeRoutes"
@@ -50,7 +54,8 @@ def get_routes(api_key, start_coords, end_coords):
             }
         },
         "travelMode": "DRIVE",
-        "computeAlternativeRoutes": True
+        "computeAlternativeRoutes": True,
+        "languageCode": "en"  # Specify language as English
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(body))
@@ -63,28 +68,31 @@ def get_routes(api_key, start_coords, end_coords):
         return None
 
 def extract_street_names(routes, street_data):
-    exclude_words = {"DRAAI", "BY", "DIE", "WEG", "LINKS", "EGS"}
+    exclude_words = {"HEAD", "BY", "THE", "EAST", "LINKS", "1ST", "2ND", "3RD", "4TH"}
     all_street_names = []
+    all_instructions = []  # New list to store instructions for each route
     distances = []
     polylines = []
     for route in routes.get('routes', []):
         steps = route.get('legs', [])[0].get('steps', [])
         street_names = []
+        instructions = []  # List to store instructions for this route
         for step in steps:
-            instructions = step.get('navigationInstruction', {}).get('instructions')
-            if instructions:
-                instructions_text = unescape(instructions).replace('<b>', '').replace('</b>', '')
-                words = instructions_text.split()  # Split the instructions into words
+            instructions_text = unescape(step.get('navigationInstruction', {}).get('instructions', '')).replace('<b>', '').replace('</b>', '')
+            if instructions_text:
+                instructions.append(instructions_text)
+                words = instructions_text.split()
                 for word in words:
                     word_upper = word.strip().upper()
                     if word_upper not in exclude_words and word_upper in street_data:
                         street_names.append(word_upper)
         all_street_names.append(street_names)
-        distance = route.get('distanceMeters', 0) / 1000  # Convert to kilometers
+        all_instructions.append(instructions)  # Add instructions to the list
+        distance = route.get('distanceMeters', 0) / 1000
         distances.append(distance)
         polyline = route.get('polyline', {}).get('encodedPolyline', "")
         polylines.append(polyline)
-    return all_street_names, distances, polylines
+    return all_street_names, all_instructions, distances, polylines
 
 def read_csv_to_dict(bucket_name, csv_file_path):
     street_data = {}
@@ -105,12 +113,14 @@ def read_csv_to_dict(bucket_name, csv_file_path):
             }
     return street_data
 
-def analyze_routes(routes, distances, polylines, street_data):
+def analyze_routes(routes, instructions, distances, polylines, street_data):
     route_objects = []
-    for route, distance, polyline in zip(routes, distances, polylines):
+    for route, instruction_set, distance, polyline in zip(routes, instructions, distances, polylines):
         route_obj = Route()
         route_obj.set_distance(distance)
         route_obj.set_polyline(polyline)
+        for instruction in instruction_set:
+            route_obj.add_instruction(instruction)  # Add each instruction to the route object
         for street_name in route:
             if street_name in street_data:
                 data = street_data[street_name]
@@ -138,19 +148,19 @@ def main(request):
 
     if routes:
         street_data = read_csv_to_dict(bucket_name, csv_file_path)
-        all_street_names, distances, polylines = extract_street_names(routes, street_data)
-        route_objects = analyze_routes(all_street_names, distances, polylines, street_data)
+        all_street_names, all_instructions, distances, polylines = extract_street_names(routes, street_data)
+        route_objects = analyze_routes(all_street_names, all_instructions, distances, polylines, street_data)
 
         for route_number, route in enumerate(route_objects, start=1):
             print(f"Route {route_number}:")
             print(f"Distance: {route.distance:.2f} km")
             print(f"Polyline: {route.polyline}")
             print(f"Streets: {route.streets}")
+            print(f"Instructions: {route.instructions}")  # Print the instructions
             print(f"Total Crime Number: {route.incident_count}")
             print(f"Total Load Shedding Count: {route.load_shedding_count}")
             print()
 
-            # Determine the shortest route
             if shortest_route is None or route.distance < shortest_route.distance:
                 shortest_route = route
             if safest_route is None or dangerScore(route) < dangerScore(safest_route):
@@ -161,6 +171,7 @@ def main(request):
         print(f"Distance: {shortest_route.distance:.2f} km")
         print(f"Polyline: {shortest_route.polyline}")
         print(f"Streets: {shortest_route.streets}")
+        print(f"Instructions: {shortest_route.instructions}")  # Print the instructions
         print(f"Total Crime Number: {shortest_route.incident_count}")
         print(f"Total Load Shedding Count: {shortest_route.load_shedding_count}")
 
@@ -168,6 +179,7 @@ def main(request):
         print(f"Distance: {safest_route.distance:.2f} km")
         print(f"Polyline: {safest_route.polyline}")
         print(f"Streets: {safest_route.streets}")
+        print(f"Instructions: {safest_route.instructions}")  # Print the instructions
         print(f"Total Crime Number: {safest_route.incident_count}")
         print(f"Total Load Shedding Count: {safest_route.load_shedding_count}")
         print(f"Danger Score: {lowest_danger_score}")
@@ -177,6 +189,7 @@ def main(request):
                 'distance': shortest_route.distance,
                 'polyline': shortest_route.polyline,
                 'streets': shortest_route.streets,
+                'instructions': shortest_route.instructions,
                 'total_crime_number': shortest_route.incident_count,
                 'total_load_shedding_count': shortest_route.load_shedding_count
             },
@@ -184,6 +197,7 @@ def main(request):
                 'distance': safest_route.distance,
                 'polyline': safest_route.polyline,
                 'streets': safest_route.streets,
+                'instructions': safest_route.instructions,
                 'total_crime_number': safest_route.incident_count,
                 'total_load_shedding_count': safest_route.load_shedding_count,
                 'danger_score': lowest_danger_score
