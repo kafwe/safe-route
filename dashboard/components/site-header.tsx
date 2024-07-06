@@ -48,12 +48,6 @@ export function SiteHeader() {
             Users
           </Link>
           <Link
-            href="/trips"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Trips
-          </Link>
-          <Link
             href="/risk"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >

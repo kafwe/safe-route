@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/table"
 import { User } from "@/types/user"
 import { UserCarDialog } from "@/components/user-car-dialog"
+import { UserTripDialog } from "@/components/user-trip-dialog"
+import { Trip } from "@/types/trip"
 
 // Sample user data
 const data: User[] = [
@@ -153,6 +155,109 @@ const data: User[] = [
                 },
                             
 
+]
+
+const trips : Trip[] = [
+  {
+      "tripId": "28a90308-cee4-402f-a643-16be7e571e64",
+      "startLocation": {
+          "latitude": -33.9028648,
+          "longitude": 18.4221961,
+          "name": "The Table Bay hotel",
+          "address": "Quay, 6 West Quay Road, Victoria & Alfred Waterfront, Cape Town"
+      },
+      "endLocation": {
+          "latitude": -33.92645580000001,
+          "longitude": 18.41203269999999,
+          "name": "Protea Hotel Fire & Ice! Cape Town",
+          "address": "64 New Church Street, Tamboerskloof, Cape Town"
+      },
+      "startTime": "2024-07-02T03:40:53.933060",
+      "endTime": "2024-07-02T03:46:53.933060",
+      "distance": 43.42,
+      "duration": 6,
+      "riskScore": 4.02,
+  },
+  {
+      "tripId": "bd592d15-6379-4d51-8ce7-f9155c942894",
+      "startLocation": {
+          "latitude": -33.9028648,
+          "longitude": 18.4221961,
+          "name": "The Table Bay hotel",
+          "address": "Quay, 6 West Quay Road, Victoria & Alfred Waterfront, Cape Town"
+      },
+      "endLocation": {
+          "latitude": -33.9132305,
+          "longitude": 18.4258898,
+          "name": "aha Harbour Bridge Hotel & Suites",
+          "address": "Dockrail Road, Foreshore, Cape Town"
+      },
+      "startTime": "2024-05-07T22:11:24.782506",
+      "endTime": "2024-05-07T22:41:24.782506",
+      "distance": 11.47,
+      "duration": 30,
+      "riskScore": 3.75,
+  },
+  {
+      "tripId": "a318b3d4-bec3-476e-a4da-f07f967634ff",
+      "startLocation": {
+          "latitude": -33.9079845,
+          "longitude": 18.4039757,
+          "name": "A Sunflower Stop Backpackers Hostel",
+          "address": "179 Main Road, Green Point, Cape Town"
+      },
+      "endLocation": {
+          "latitude": -33.9157633,
+          "longitude": 18.4234956,
+          "name": "Southern Sun Waterfront Cape Town",
+          "address": "1 Lower Buitengracht, Cape Town City Centre, Cape Town"
+      },
+      "startTime": "2024-05-23T04:12:45.602635",
+      "endTime": "2024-05-23T04:17:45.602635",
+      "distance": 7.22,
+      "duration": 5,
+      "riskScore": 5.57,
+  },
+  {
+      "tripId": "07149289-8b65-4270-9bbf-a242d432eb09",
+      "startLocation": {
+          "latitude": -33.9157055,
+          "longitude": 18.4262212,
+          "name": "The Westin Cape Town",
+          "address": "Convention Square, Lower Long Street, Cape Town"
+      },
+      "endLocation": {
+          "latitude": -33.9028648,
+          "longitude": 18.4221961,
+          "name": "The Table Bay hotel",
+          "address": "Quay, 6 West Quay Road, Victoria & Alfred Waterfront, Cape Town"
+      },
+      "startTime": "2024-01-25T17:11:16.398770",
+      "endTime": "2024-01-25T18:26:16.398770",
+      "distance": 25.57,
+      "duration": 75,
+      "riskScore": 1.56,
+  },
+  {
+      "tripId": "ee3d42ff-5d31-4926-b11a-a8c32d6736a2",
+      "startLocation": {
+          "latitude": -33.92645580000001,
+          "longitude": 18.41203269999999,
+          "name": "Protea Hotel Fire & Ice! Cape Town",
+          "address": "64 New Church Street, Tamboerskloof, Cape Town"
+      },
+      "endLocation": {
+          "latitude": -33.9243915,
+          "longitude": 18.4210207,
+          "name": "Adderley Hotel",
+          "address": "31 Adderley Street, Cape Town City Centre, Cape Town"
+      },
+      "startTime": "2024-03-12T04:12:56.957507",
+      "endTime": "2024-03-12T05:50:56.957507",
+      "distance": 1.62,
+      "duration": 98,
+      "riskScore": 0.31,
+  }
 ]
 
 
@@ -272,7 +377,9 @@ export const columns: ColumnDef<User>[] = [
                     }
                 } />
             </DropdownMenuItem>
-            <DropdownMenuItem>View Trips</DropdownMenuItem>
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <UserTripDialog user={user} trips={trips} />
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )
