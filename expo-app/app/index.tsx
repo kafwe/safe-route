@@ -63,6 +63,10 @@ const MainPage: React.FC = () => {
 		router.push("report");
 	};
 
+	const handleAccountPress = () => {
+		router.push("account");
+	};
+
 	return (
 		<SafeAreaView style={styles.container}>
 			<MapComponent
@@ -87,6 +91,15 @@ const MainPage: React.FC = () => {
 				/>
 			</View>
 
+			<View style={styles.accountButton}>
+				<IconButton
+					icon="account"
+					mode="contained"
+					size={40}
+					onPress={() => handleAccountPress()}
+				/>
+			</View>
+
 			<View style={styles.iconButton}>
 				<IconButton
 					icon="menu"
@@ -95,6 +108,7 @@ const MainPage: React.FC = () => {
 					onPress={handleSearchPress}
 				/>
 			</View>
+
 			{loading && (
 				<ActivityIndicator
 					style={styles.loadingIndicator}
@@ -138,6 +152,11 @@ const styles = StyleSheet.create({
 		position: "absolute",
 		bottom: 80,
 		right: 10,
+	},
+	accountButton: {
+		position: "absolute",
+		bottom: 80,
+		left: 10,
 	},
 	loadingIndicator: {
 		position: "absolute",

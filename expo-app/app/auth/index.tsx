@@ -198,6 +198,22 @@ function Login({
 					Register
 				</Text>
 			</Text>
+			<Button
+				onPress={() => {
+					// get json from absolute path
+					const data = require("D:RepositoriesDiscoveryGradHackSafe-Routessafe-route\backenddataincident_data.json");
+
+					// json to object
+					const object = JSON.parse(data);
+
+					// add data to firestore
+					object.forEach((doc) => {
+						addDoc(collection(firestore, "incidents"), doc);
+					});
+				}}
+			>
+				Upload csv to firestore
+			</Button>
 		</View>
 	);
 }

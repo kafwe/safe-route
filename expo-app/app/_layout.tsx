@@ -57,7 +57,10 @@ export default function RootLayout() {
 								/>
 								<Stack.Screen
 									name="index"
-									options={{ headerShown: false }}
+									options={{
+										title: "SafeRoute",
+										headerShown: false,
+									}}
 								/>
 								<Stack.Screen
 									name="onboarding/car"
@@ -74,6 +77,10 @@ export default function RootLayout() {
 								<Stack.Screen
 									name="report"
 									options={{ title: "Report an incident" }}
+								/>
+								<Stack.Screen
+									name="account"
+									options={{ title: "Account" }}
 								/>
 								<Stack.Screen name="+not-found" />
 							</Stack>
