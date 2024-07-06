@@ -1,52 +1,125 @@
+import * as React from "react"
 import Link from "next/link"
+import {
+  Menu,
+  Package2,
+  CarFront
+} from "lucide-react"
 
-import { siteConfig } from "@/config/site"
-import { buttonVariants } from "@/components/ui/button"
-import { Icons } from "@/components/icons"
-import { MainNav } from "@/components/main-nav"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/theme-toggle"
+
 
 export function SiteHeader() {
   return (
-    <header className="bg-background sticky top-0 z-40 w-full border-b">
-      <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
-        <MainNav items={siteConfig.mainNav} />
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          <nav className="flex items-center space-x-1">
-            <Link
-              href={siteConfig.links.github}
-              target="_blank"
-              rel="noreferrer"
+    <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+        <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
+          <Link
+            href="#"
+            className="flex items-center gap-2 text-lg font-semibold md:text-base"
+          >
+            <CarFront className="h-6 w-6" />
+            <span className="sr-only">Dashboard</span>
+          </Link>
+          <Link
+            href="/"
+            className="text-foreground transition-colors hover:text-foreground"
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Overview
+          </Link>
+          <Link
+            href="/users"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Users
+          </Link>
+          <Link
+            href="/trips"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Trips
+          </Link>
+          <Link
+            href="/risk"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Risk
+          </Link>
+        </nav>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0 md:hidden"
             >
-              <div
-                className={buttonVariants({
-                  size: "icon",
-                  variant: "ghost",
-                })}
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle navigation menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left">
+            <nav className="grid gap-6 text-lg font-medium">
+              <Link
+                href="#"
+                className="flex items-center gap-2 text-lg font-semibold"
               >
-                <Icons.gitHub className="h-5 w-5" />
-                <span className="sr-only">GitHub</span>
-              </div>
-            </Link>
-            <Link
-              href={siteConfig.links.twitter}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <div
-                className={buttonVariants({
-                  size: "icon",
-                  variant: "ghost",
-                })}
+                <Package2 className="h-6 w-6" />
+                <span className="sr-only">Dashboard</span>
+              </Link>
+              <Link href="#" className="hover:text-foreground">
+                Overview
+              </Link>
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-foreground"
               >
-                <Icons.twitter className="h-5 w-5 fill-current" />
-                <span className="sr-only">Twitter</span>
-              </div>
-            </Link>
-            <ThemeToggle />
-          </nav>
+                Users
+              </Link>
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Trips
+              </Link>
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Risk
+              </Link>
+            </nav>
+          </SheetContent>
+        </Sheet>
+        <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
+          <div className="ml-auto flex-1 sm:flex-initial">
+          </div>
+          <ThemeToggle />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="icon" className="rounded-full">
+                <span className="sr-only">Toggle user menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuItem>Logout</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </div>
-    </header>
+      </header>
   )
 }
