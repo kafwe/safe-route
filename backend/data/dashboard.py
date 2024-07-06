@@ -9,6 +9,7 @@ from geopy.distance import geodesic
 from geopy.point import Point
 import geopy.distance
 
+
 # Initialize Faker and Google Maps client
 fake = Faker()
 gmaps = googlemaps.Client(key='AIzaSyBoBRKnm25Hz_A0TjmvmNdEEJ48LxFLZS8')
