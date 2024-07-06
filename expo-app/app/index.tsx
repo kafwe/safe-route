@@ -1,46 +1,108 @@
-import { Image, StyleSheet, Platform, View } from "react-native";
+// app/index.tsx
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet } from "react-native";
+import { useNavigation, useLocalSearchParams } from "expo-router";
+import { getGoogleMapsApiKey } from "@/utils/getGoogleMapsApiKey";
+import { ActivityIndicator, IconButton, Searchbar, useTheme } from "react-native-paper";
+import MapComponent from "@/components/navigation/MapComponent";
+import RouteRecommendations from "@/components/navigation/RouteRecommendations";
+import Geocoder from 'react-native-geocoding';
 
-import { HelloWave } from "@/components/HelloWave";
-import ParallaxScrollView from "@/components/ParallaxScrollView";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { Button } from "react-native-paper";
+const MainPage: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [destinationCoords, setDestinationCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showRoutes, setShowRoutes] = useState(false);
+  const navigation = useNavigation();
+  const { colors } = useTheme();
+  const params = useLocalSearchParams();
 
-export default function HomeScreen() {
-	return (
-		<View style={styles.view}>
-			<Button
-				icon="camera"
-				mode="contained"
-				onPress={() => console.log("Pressed")}
-			>
-				Press me
-			</Button>
-		</View>
-	);
-}
+  useEffect(() => {
+    if (params.searchQuery) {
+      const query = Array.isArray(params.searchQuery) ? params.searchQuery[0] : params.searchQuery;
+      setSearchQuery(query);
+      handleSearchLocation(query);
+    }
+  }, [params.searchQuery]);
+
+  const handleSearchLocation = (location: string) => {
+    setLoading(true);
+    Geocoder.init(getGoogleMapsApiKey());
+    Geocoder.from(location)
+      .then(json => {
+        const location = json.results[0].geometry.location;
+        setDestinationCoords({
+          latitude: location.lat,
+          longitude: location.lng,
+        });
+        setShowRoutes(true);
+      })
+      .catch(error => console.warn(error))
+      .finally(() => setLoading(false));
+  };
+
+  const handleSearchPress = () => {
+    navigation.navigate('SearchPage');
+  };
+
+  return (
+    <View style={styles.container}>
+      <MapComponent
+        userLoc={{ latitude: -33.918861, longitude: 18.4233 }}
+        resultsArr={[]}
+        locationChosen={() => {}}
+        locationDeChosen={() => {}}
+        mode={1}
+        destinationCoords={destinationCoords}
+        setDestinationCoords={setDestinationCoords}
+        loading={loading}
+        setLoading={setLoading}
+      />
+      
+      <View style={styles.iconButton}>
+        <IconButton
+          icon="menu"
+          iconColor={colors.primary}
+          size={30}
+          onPress={handleSearchPress}
+        />
+      </View>
+      {loading && <ActivityIndicator style={styles.loadingIndicator} animating={true} color={colors.primary} />}
+      {showRoutes && <RouteRecommendations onClose={() => setShowRoutes(false)} />}
+      <Searchbar
+        placeholder="Where to?"
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        onIconPress={handleSearchPress}
+        style={styles.searchbar}
+      />
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-	view: {
-		display: "flex",
-		justifyContent: "center",
-		alignContent: "center",
-		height: "100%",
-	},
-	titleContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	stepContainer: {
-		gap: 8,
-		marginBottom: 8,
-	},
-	reactLogo: {
-		height: 178,
-		width: 290,
-		bottom: 0,
-		left: 0,
-		position: "absolute",
-	},
+  container: {
+    flex: 1,
+  },
+  searchbar: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    right: 10,
+    marginHorizontal: 10,
+    borderRadius: 10,
+  },
+  iconButton: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+  },
+  loadingIndicator: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -10 }, { translateY: -10 }],
+  },
 });
+
+export default MainPage;
