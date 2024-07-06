@@ -21,6 +21,10 @@
         "backgroundColor": "#ffffff"
       }
     },
+     "extra": {
+      "googleMapsApiKey": "AIzaSyDPzWN903NrP9Yac5m-Th9SJ3z847pkAbU"
+    },
+    
     "web": {
       "bundler": "metro",
       "output": "static",
