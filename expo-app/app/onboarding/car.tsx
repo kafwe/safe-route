@@ -1,11 +1,13 @@
 import { useContext, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { Button, Text } from "react-native-paper";
-import authContext from "@/lib/contexts/authContext";
+import authContext, { SafeRouteUser } from "@/lib/contexts/authContext";
 import { FormBuilder } from "react-native-paper-form-builder";
 import { useForm } from "react-hook-form";
 import { doc, firestore, setDoc } from "../../lib/firebase/firebaseConfig";
 import { useRouter } from "expo-router";
+import { useToast } from "react-native-paper-toast";
+import { updateDoc } from "firebase/firestore";
 
 const carMakes = [
 	"BMW",
@@ -170,21 +172,37 @@ export default function CarOnboarding() {
 		mode: "onChange",
 	});
 	const router = useRouter();
+	const toaster = useToast();
 
-	const submit = () => {
+	const submit = async () => {
 		const values = getValues();
 		//creating an object with user data
 		const userData = {
-			...user,
 			carMake: carMakes[values.carMake],
 			carModel: carModels[values.carMake][Number(values.carModel)],
 		};
 
-		//adding the users data to the 'Users' collection
-		const userRef = doc(firestore, "users", user?.uid); //getting a reference to the document
-		const setDocResponse = setDoc(userRef, userData); //setting the document with userData
+		try {
+			console.log("User data", userData);
+			//adding the users data to the 'Users' collection
+			const userRef = doc(firestore, "users", user?.uid); //getting a reference to the document
+			const setDocResponse = await updateDoc(userRef, userData); //setting the document with userData
 
-		router.replace("onboarding/preferences");
+			setUser({ ...user, ...userData } as SafeRouteUser);
+
+			toaster.show({
+				message: "Car selected successfully",
+				type: "success",
+			});
+
+			router.replace("onboarding/preferences");
+		} catch (error) {
+			console.error(error);
+			toaster.show({
+				message: "An error occurred. Please try again.",
+				type: "error",
+			});
+		}
 	};
 
 	return (

@@ -6,7 +6,7 @@ import {
 	ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -26,12 +26,17 @@ export default function RootLayout() {
 		SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
 	});
 	const [user, setUser] = useState<User | undefined>(undefined);
+	const router = useRouter();
 
 	useEffect(() => {
 		if (loaded) {
 			SplashScreen.hideAsync();
 		}
 	}, [loaded]);
+
+	useEffect(() => {
+		if (loaded && !user) router.replace("auth/");
+	}, [user, loaded]);
 
 	if (!loaded) {
 		return null;

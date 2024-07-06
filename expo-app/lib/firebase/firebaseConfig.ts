@@ -11,21 +11,36 @@ import Firestore, {
 // import {...} from "firebase/functions";
 // import {...} from "firebase/storage";
 
-// Initialize Firebase
+// // Initialize Firebase
+// const firebaseConfig = {
+// 	apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+// 	authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+// 	projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+// 	storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+// 	messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+// 	appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+// };
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
-	apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-	authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-	projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-	storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-	messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-	appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+	apiKey: "AIzaSyDPzWN903NrP9Yac5m-Th9SJ3z847pkAbU",
+	authDomain: "gradhack24jnb-608.firebaseapp.com",
+	projectId: "gradhack24jnb-608",
+	storageBucket: "gradhack24jnb-608.appspot.com",
+	messagingSenderId: "1028767563254",
+	appId: "1:1028767563254:web:ab6637a44c29c54a3e5bd7",
 };
+
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const firestore = initializeFirestore(app, {
-	experimentalAutoDetectLongPolling: true,
-});
+export const firestore = initializeFirestore(
+	app,
+	{
+		experimentalAutoDetectLongPolling: true,
+	},
+	"safe-route-db"
+);
 
 export {
 	signInWithEmailAndPassword,

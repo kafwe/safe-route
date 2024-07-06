@@ -1,7 +1,7 @@
 // app/index.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { View, StyleSheet, SafeAreaView } from "react-native";
-import { useNavigation, useLocalSearchParams } from "expo-router";
+import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
 import { getGoogleMapsApiKey } from "@/utils/getGoogleMapsApiKey";
 import {
 	ActivityIndicator,
@@ -12,8 +12,10 @@ import {
 import MapComponent from "@/components/navigation/MapComponent";
 import RouteRecommendations from "@/components/navigation/RouteRecommendations";
 import Geocoder from "react-native-geocoding";
+import authContext from "@/lib/contexts/authContext";
 
 const MainPage: React.FC = () => {
+	const { user, setUser } = useContext(authContext);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [destinationCoords, setDestinationCoords] = useState<{
 		latitude: number;
@@ -24,6 +26,7 @@ const MainPage: React.FC = () => {
 	const navigation = useNavigation();
 	const { colors } = useTheme();
 	const params = useLocalSearchParams();
+	const router = useRouter();
 
 	useEffect(() => {
 		if (params.searchQuery) {

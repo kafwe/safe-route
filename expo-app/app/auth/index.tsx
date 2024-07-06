@@ -103,7 +103,7 @@ function Login({
 							type: "success",
 						});
 
-						router.navigate("Home");
+						router.navigate("index");
 					} else {
 						toaster.show({
 							message: "User does not exist",
