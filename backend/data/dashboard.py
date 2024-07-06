@@ -40,7 +40,7 @@ def generate_random_location_within_cape_town():
     # Use Google Places API to find a random place within Cape Town
     places_result = gmaps.places_nearby(
         location={"lat": -33.9249, "lng": 18.4241}, # Cape Town's approximate center
-        radius=30000, # 30 km radius
+        radius=80000, # 80 km radius
         type='point_of_interest' # You can change the type as needed
     )
     place = random.choice(places_result['results'])
@@ -81,7 +81,7 @@ def generate_users_and_trips(num_users, min_trips_per_user, max_trips_per_user):
             duration = random.randint(5, 120)  # Duration between 5 minutes to 2 hours
             end_time = start_time + timedelta(minutes=duration)
             distance = round(random.uniform(1, 50), 2)  # Distance between 1 to 50 km
-            risk_score = round(random.uniform(0, 10), 2)  # Risk score between 0 to 10
+            risk_score = round(random.uniform(40, 70), 2)  # Risk score between 0 to 10
                         
             trip_data = {
                 "tripId": trip_id,
