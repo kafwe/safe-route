@@ -181,47 +181,71 @@ export const columns: ColumnDef<User>[] = [
   },
   {
     accessorKey: "email",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Email
-        <CaretSortIcon className="ml-2 h-4 w-4" />
-      </Button>
-    ),
+    header: "Email",
     cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
   },
   {
     accessorKey: "age",
-    header: () => <div className="text-right">Age</div>,
+    header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Age
+          <CaretSortIcon className="ml-2 h-4 w-4" />
+        </Button>
+      ),
     cell: ({ row }) => {
       const age = row.getValue("age")
-      return <div className="text-right font-medium">{age}</div>
+      return <div className="text-center font-medium">{age}</div>
     },
   },
   {
     accessorKey: "avgTripDistance",
-    header: () => <div className="text-right">Avg Trip Distance (km)</div>,
+    header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Avg Trip Distance (km)
+          <CaretSortIcon className="ml-2 h-4 w-4" />
+        </Button>
+      ),
     cell: ({ row }) => {
       const avgTripDistance = row.getValue("avgTripDistance")
-      return <div className="text-right font-medium">{avgTripDistance.toFixed(2)}</div>
+      return <div className="text-center font-medium">{avgTripDistance.toFixed(2)}</div>
     },
   },
   {
     accessorKey: "avgRiskScore",
-    header: () => <div className="text-right">Avg Risk Score</div>,
+    header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Avg Risk Score
+          <CaretSortIcon className="ml-2 h-4 w-4" />
+        </Button>
+      ),
     cell: ({ row }) => {
       const avgRiskScore = row.getValue("avgRiskScore")
-      return <div className="text-right font-medium">{avgRiskScore.toFixed(1)}</div>
+      return <div className="text-center font-medium">{avgRiskScore.toFixed(1)}</div>
     },
   },
   {
     accessorKey: "totalRiskScore",
-    header: () => <div className="text-right">Total Risk Score</div>,
+    header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Total Risk Score
+          <CaretSortIcon className="ml-2 h-4 w-4" />
+        </Button>
+      ),
     cell: ({ row }) => {
       const totalRiskScore = row.getValue("totalRiskScore")
-      return <div className="text-right font-medium">{totalRiskScore}</div>
+      return <div className="text-center font-medium">{totalRiskScore}</div>
     },
   },
   {
