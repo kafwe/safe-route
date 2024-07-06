@@ -38,6 +38,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { User } from "@/types/user"
+import { UserCarDialog } from "@/components/user-car-dialog"
 
 // Sample user data
 const data: User[] = [
@@ -153,15 +155,6 @@ const data: User[] = [
 
 ]
 
-export type User = {
-  id: string
-  name: string
-  email: string
-  age: number
-  avgTripDistance: number
-  avgRiskScore: number
-  totalRiskScore: number
-}
 
 export const columns: ColumnDef<User>[] = [
   {
@@ -270,7 +263,15 @@ export const columns: ColumnDef<User>[] = [
               Copy User ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>View Car</DropdownMenuItem>
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <UserCarDialog user={user} car={
+                    {
+                        make: "Toyota",
+                        model: "Corolla",
+                        year: 2019,
+                    }
+                } />
+            </DropdownMenuItem>
             <DropdownMenuItem>View Trips</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

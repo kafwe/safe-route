@@ -108,7 +108,7 @@ export default function Dashboard() {
               <div className="grid gap-2">
                 <CardTitle>High-risk areas</CardTitle>
                 <CardDescription>
-                  howing high-risk areas and incidents
+                  Showing high-risk areas and incidents
                 </CardDescription>
               </div>
             </CardHeader>
