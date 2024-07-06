@@ -50,6 +50,14 @@ export default function RootLayout() {
 								name="index"
 								options={{ headerShown: false }}
 							/>
+							<Stack.Screen
+								name="onboarding/car"
+								options={{ headerShown: false }}
+							/>
+							<Stack.Screen
+								name="onboarding/preferences"
+								options={{ headerShown: false }}
+							/>
 							<Stack.Screen name="+not-found" />
 						</Stack>
 					</AuthContext.Provider>

@@ -28,6 +28,8 @@ import { FormBuilder } from "react-native-paper-form-builder";
 import AuthContext from "@/lib/contexts/authContext";
 import { useToast } from "react-native-paper-toast";
 
+import { router } from "expo-router";
+
 export default function AuthScreen() {
 	const [authType, setAuthType] = useState<"login" | "register">("login");
 
@@ -100,6 +102,8 @@ function Login({
 							duration: 2000,
 							type: "success",
 						});
+
+						router.navigate("Home");
 					} else {
 						toaster.show({
 							message: "User does not exist",
@@ -233,16 +237,17 @@ function Register({
 			email: control._formValues.email,
 		};
 
-		//adding the users data to the 'Users' collection
-		const userRef = doc(firestore, "users", user.uid); //getting a reference to the document
-		const setDocResponse = await setDoc(userRef, userData); //setting the document with userData
-
 		setUser({ ...user, ...userData });
 		toaster.show({
 			message: "Registration successful",
 			duration: 2000,
 			type: "success",
 		});
+		router.replace("/onboarding/car");
+
+		//adding the users data to the 'Users' collection
+		const userRef = doc(firestore, "users", user.uid); //getting a reference to the document
+		const setDocResponse = setDoc(userRef, userData); //setting the document with userData
 	};
 
 	return (
