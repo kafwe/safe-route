@@ -1,6 +1,6 @@
 // app/index.tsx
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, SafeAreaView } from "react-native";
 import { useNavigation, useLocalSearchParams } from "expo-router";
 import { getGoogleMapsApiKey } from "@/utils/getGoogleMapsApiKey";
 import {
@@ -56,7 +56,7 @@ const MainPage: React.FC = () => {
 	};
 
 	return (
-		<View style={styles.container}>
+		<SafeAreaView style={styles.container}>
 			<MapComponent
 				userLoc={{ latitude: -33.918861, longitude: 18.4233 }}
 				resultsArr={[]}
@@ -92,9 +92,10 @@ const MainPage: React.FC = () => {
 				onChangeText={setSearchQuery}
 				value={searchQuery}
 				onIconPress={handleSearchPress}
+				onPress={handleSearchPress}
 				style={styles.searchbar}
 			/>
-		</View>
+		</SafeAreaView>
 	);
 };
 
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
 	},
 	iconButton: {
 		position: "absolute",
-		top: 10,
+		top: 40,
 		left: 10,
 	},
 	loadingIndicator: {

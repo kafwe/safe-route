@@ -44,25 +44,31 @@ export default function RootLayout() {
 			<PaperProvider>
 				<ToastProvider>
 					<AuthContext.Provider value={{ user, setUser }}>
-						<Stack>
-							<Stack.Screen
-								name="index"
-								options={{ headerShown: false }}
-							/>
-							<Stack.Screen
-								name="onboarding/car"
-								options={{ headerShown: false }}
-							/>
-							<Stack.Screen
-								name="onboarding/preferences"
-								options={{ headerShown: false }}
-							/>
-							<Stack.Screen
-								name="SearchPage"
-								options={{ title: "Search" }}
-							/>
-							<Stack.Screen name="+not-found" />
-						</Stack>
+						<NavigationProvider>
+							<Stack>
+								<Stack.Screen
+									name="auth/index"
+									options={{ headerShown: false }}
+								/>
+								<Stack.Screen
+									name="index"
+									options={{ headerShown: false }}
+								/>
+								<Stack.Screen
+									name="onboarding/car"
+									options={{ headerShown: false }}
+								/>
+								<Stack.Screen
+									name="onboarding/preferences"
+									options={{ headerShown: false }}
+								/>
+								<Stack.Screen
+									name="SearchPage"
+									options={{ title: "Search" }}
+								/>
+								<Stack.Screen name="+not-found" />
+							</Stack>
+						</NavigationProvider>
 					</AuthContext.Provider>
 				</ToastProvider>
 			</PaperProvider>
