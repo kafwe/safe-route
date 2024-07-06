@@ -82,16 +82,7 @@ def generate_users_and_trips(num_users, min_trips_per_user, max_trips_per_user):
             end_time = start_time + timedelta(minutes=duration)
             distance = round(random.uniform(1, 50), 2)  # Distance between 1 to 50 km
             risk_score = round(random.uniform(0, 10), 2)  # Risk score between 0 to 10
-            
-            # Check if start location is in any of the crime areas
-            in_crime_area = any(area['Station'] in start_location['name'] for area in crime_areas)
-            
-            # Increase risk score based on incident value of the crime area
-            if in_crime_area:
-                area_data = next(area for area in crime_areas if area['Station'] in start_location['name'])
-                incident_value = area_data['Incidents values']
-                risk_score += (incident_value / 1000.0)  # Adjust as needed based on your scenario
-            
+                        
             trip_data = {
                 "tripId": trip_id,
                 "startLocation": start_location,
