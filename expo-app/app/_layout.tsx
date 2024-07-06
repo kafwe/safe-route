@@ -71,6 +71,10 @@ export default function RootLayout() {
 									name="SearchPage"
 									options={{ title: "Search" }}
 								/>
+								<Stack.Screen
+									name="report"
+									options={{ title: "Report an incident" }}
+								/>
 								<Stack.Screen name="+not-found" />
 							</Stack>
 						</NavigationProvider>

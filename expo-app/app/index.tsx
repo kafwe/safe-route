@@ -6,6 +6,7 @@ import { getGoogleMapsApiKey } from "@/utils/getGoogleMapsApiKey";
 import {
 	ActivityIndicator,
 	IconButton,
+	MD3Colors,
 	Searchbar,
 	useTheme,
 } from "react-native-paper";
@@ -58,6 +59,10 @@ const MainPage: React.FC = () => {
 		navigation.navigate("SearchPage");
 	};
 
+	const handleReportPress = () => {
+		router.push("report");
+	};
+
 	return (
 		<SafeAreaView style={styles.container}>
 			<MapComponent
@@ -71,6 +76,16 @@ const MainPage: React.FC = () => {
 				loading={loading}
 				setLoading={setLoading}
 			/>
+
+			<View style={styles.reportButton}>
+				<IconButton
+					icon="alert-octagon"
+					iconColor={MD3Colors.error50}
+					mode="contained"
+					size={40}
+					onPress={() => handleReportPress()}
+				/>
+			</View>
 
 			<View style={styles.iconButton}>
 				<IconButton
@@ -118,6 +133,11 @@ const styles = StyleSheet.create({
 		position: "absolute",
 		top: 40,
 		left: 10,
+	},
+	reportButton: {
+		position: "absolute",
+		bottom: 80,
+		right: 10,
 	},
 	loadingIndicator: {
 		position: "absolute",
