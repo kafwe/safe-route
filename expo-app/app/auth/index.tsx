@@ -1,9 +1,18 @@
 import {
 	GoogleAuthProvider,
+	addDoc,
 	auth,
+	collection,
 	createUserWithEmailAndPassword,
 	signInWithEmailAndPassword,
-} from "@/lib/firebase/firebaseConfig";
+	firestore,
+	getDocs,
+	getDoc,
+	setDoc,
+	query,
+	where,
+} from "../../lib/firebase/firebaseConfig";
+import { doc } from "firebase/firestore";
 import { useContext, useState } from "react";
 import {
 	View,
@@ -60,11 +69,44 @@ function Login({
 			.then((userCredential) => {
 				// Signed in
 				const user = userCredential.user;
-				setUser(user);
-				toaster.show({
-					message: "Login successful",
-					duration: 2000,
-					type: "success",
+
+				const q = query(
+					collection(firestore, "users"),
+					where("uid", "==", user.uid)
+				);
+
+				getDocs(q).then((querySnapshot) => {
+					const data = querySnapshot.docs[0].data();
+					setUser({
+						...user,
+						firstName: data.firstName,
+						lastName: data.lastName,
+						uid: user.uid,
+					});
+				});
+
+				const documentReference = doc(firestore, "users", user.uid);
+				getDoc(documentReference).then((documentSnapshot) => {
+					if (documentSnapshot.exists()) {
+						const data = documentSnapshot.data();
+						setUser({
+							...user,
+							firstName: data.firstName,
+							lastName: data.lastName,
+							uid: user.uid,
+						});
+						toaster.show({
+							message: "Login successful",
+							duration: 2000,
+							type: "success",
+						});
+					} else {
+						toaster.show({
+							message: "User does not exist",
+							duration: 2000,
+							type: "error",
+						});
+					}
 				});
 			})
 			.catch((error) => {
@@ -173,33 +215,34 @@ function Register({
 	});
 	const { user, setUser } = useContext(AuthContext);
 	const toaster = useToast();
-	const provider = new GoogleAuthProvider();
 
-	const register = () => {
-		createUserWithEmailAndPassword(
+	const register = async () => {
+		const userCredentials = await createUserWithEmailAndPassword(
 			auth,
 			control._formValues.email,
 			control._formValues.password
-		)
-			.then((userCredential) => {
-				// Signed up
-				const user = userCredential.user;
-				setUser(user);
-				toaster.show({
-					message: "Registration successful",
-					duration: 2000,
-					type: "success",
-				});
-			})
-			.catch((error) => {
-				const errorCode = error.code;
-				const errorMessage = error.message;
-				toaster.show({
-					message: `${errorCode}: Registration failed, ${errorMessage}`,
-					duration: 2000,
-					type: "error",
-				});
-			});
+		);
+
+		const user = userCredentials.user;
+
+		//creating an object with user data
+		const userData = {
+			uid: user.uid,
+			firstName: control._formValues.firstName,
+			lastName: control._formValues.lastName,
+			email: control._formValues.email,
+		};
+
+		//adding the users data to the 'Users' collection
+		const userRef = doc(firestore, "users", user.uid); //getting a reference to the document
+		const setDocResponse = await setDoc(userRef, userData); //setting the document with userData
+
+		setUser({ ...user, ...userData });
+		toaster.show({
+			message: "Registration successful",
+			duration: 2000,
+			type: "success",
+		});
 	};
 
 	return (

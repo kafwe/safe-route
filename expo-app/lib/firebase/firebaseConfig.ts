@@ -3,7 +3,11 @@ import { initializeApp } from "firebase/app";
 // Optionally import the services that you want to use
 import { getAuth } from "firebase/auth";
 // import {...} from "firebase/database";
-// import {...} from "firebase/firestore";
+import Firestore, {
+	getFirestore,
+	initializeFirestore,
+	Firestore as FirebaseFirestore,
+} from "firebase/firestore";
 // import {...} from "firebase/functions";
 // import {...} from "firebase/storage";
 
@@ -19,6 +23,10 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const firestore = initializeFirestore(app, {
+	experimentalAutoDetectLongPolling: true,
+});
+
 export {
 	signInWithEmailAndPassword,
 	createUserWithEmailAndPassword,
@@ -27,5 +35,16 @@ export {
 	signInWithRedirect,
 	getRedirectResult,
 } from "firebase/auth";
+
+export {
+	collection,
+	addDoc,
+	getDocs,
+	getDoc,
+	setDoc,
+	query,
+	where,
+	doc,
+} from "firebase/firestore";
 // For more information on how to access Firebase in your project,
 // see the Firebase documentation: https://firebase.google.com/docs/web/setup#access-firebase
