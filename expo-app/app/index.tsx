@@ -1,11 +1,11 @@
 // app/index.tsx
 import React, { useState, useEffect, useContext } from "react";
-import { View, StyleSheet, SafeAreaView } from "react-native";
-import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
+import { View, StyleSheet, Dimensions, SafeAreaView } from "react-native";
+import { useNavigation, useRouter } from "expo-router";
 import { getGoogleMapsApiKey } from "@/utils/getGoogleMapsApiKey";
 import {
 	ActivityIndicator,
-	IconButton,
+	IconButton, Button,
 	MD3Colors,
 	Searchbar,
 	useTheme,
@@ -14,6 +14,8 @@ import MapComponent from "@/components/navigation/MapComponent";
 import RouteRecommendations from "@/components/navigation/RouteRecommendations";
 import Geocoder from "react-native-geocoding";
 import authContext from "@/lib/contexts/authContext";
+import { NavigationContext } from "@/components/navigation/NavigationContext";
+import { ButtonGroup } from "react-native-elements";
 
 const MainPage: React.FC = () => {
 	const { user, setUser } = useContext(authContext);
@@ -26,109 +28,110 @@ const MainPage: React.FC = () => {
 	const [showRoutes, setShowRoutes] = useState(false);
 	const navigation = useNavigation();
 	const { colors } = useTheme();
-	const params = useLocalSearchParams();
+	const { setRoutes } = useContext(NavigationContext);
 	const router = useRouter();
 
-	useEffect(() => {
-		if (params.searchQuery) {
-			const query = Array.isArray(params.searchQuery)
-				? params.searchQuery[0]
-				: params.searchQuery;
-			setSearchQuery(query);
-			handleSearchLocation(query);
-		}
-	}, [params.searchQuery]);
+  useEffect(() => {
+    const init = async () => {
+      const apiKey = await getGoogleMapsApiKey();
+      Geocoder.init(apiKey);
+    };
+    init();
+  }, []);
 
-	const handleSearchLocation = (location: string) => {
-		setLoading(true);
-		Geocoder.init(getGoogleMapsApiKey());
-		Geocoder.from(location)
-			.then((json) => {
-				const location = json.results[0].geometry.location;
-				setDestinationCoords({
-					latitude: location.lat,
-					longitude: location.lng,
-				});
-				setShowRoutes(true);
-			})
-			.catch((error) => console.warn(error))
-			.finally(() => setLoading(false));
-	};
+  const handleSearchLocation = (location: string) => {
+    setLoading(true);
+    Geocoder.from(location)
+      .then(json => {
+        const location = json.results[0].geometry.location;
+        setDestinationCoords({
+          latitude: location.lat,
+          longitude: location.lng,
+        });
+        setShowRoutes(true);
+      })
+      .catch(error => console.warn(error))
+      .finally(() => setLoading(false));
+  };
 
-	const handleSearchPress = () => {
-		navigation.navigate("SearchPage");
-	};
+  const handleSearchPress = () => {
+      navigation.navigate('SearchPage' as never);
+    
+  };
 
-	const handleReportPress = () => {
-		router.push("report");
-	};
+  const handleRouteSelect = (route: any) => {
+    // Update the map to show the selected route
+    // You might need to pass this information to your MapComponent
+    console.log("Selected route:", route);
+  };
 
-	const handleAccountPress = () => {
-		router.push("account");
-	};
+  const handleReportPress = () => {
+	router.push("report");
+};
 
-	return (
-		<SafeAreaView style={styles.container}>
-			<MapComponent
-				userLoc={{ latitude: -33.918861, longitude: 18.4233 }}
-				resultsArr={[]}
-				locationChosen={() => {}}
-				locationDeChosen={() => {}}
-				mode={1}
-				destinationCoords={destinationCoords}
-				setDestinationCoords={setDestinationCoords}
-				loading={loading}
-				setLoading={setLoading}
+const handleAccountPress = () => {
+	router.push("account");
+};
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <MapComponent
+        userLoc={{ latitude: -33.918861, longitude: 18.4233 }}
+        resultsArr={[]}
+        locationChosen={() => {}}
+        locationDeChosen={() => {}}
+        mode={1}
+        destinationCoords={destinationCoords}
+        setDestinationCoords={setDestinationCoords}
+        loading={loading}
+        setLoading={setLoading}
+      />
+      
+      <View style={styles.iconButton}>
+        <IconButton
+          icon="menu"
+          iconColor={colors.primary}
+          size={30}
+          onPress={() => navigation.navigate('SearchPage' as never)}
+        />
+      </View>
+
+	  <View style={styles.reportButton}>
+			<IconButton
+				icon="alert-octagon"
+				iconColor={MD3Colors.error50}
+				mode="contained"
+				size={40}
+				onPress={() => handleReportPress()}
 			/>
+		</View>
 
-			<View style={styles.reportButton}>
-				<IconButton
-					icon="alert-octagon"
-					iconColor={MD3Colors.error50}
-					mode="contained"
-					size={40}
-					onPress={() => handleReportPress()}
-				/>
-			</View>
-
-			<View style={styles.accountButton}>
-				<IconButton
-					icon="account"
-					mode="contained"
-					size={40}
-					onPress={() => handleAccountPress()}
-				/>
-			</View>
-
-			<View style={styles.iconButton}>
-				<IconButton
-					icon="menu"
-					iconColor={colors.primary}
-					size={30}
-					onPress={handleSearchPress}
-				/>
-			</View>
-
-			{loading && (
-				<ActivityIndicator
-					style={styles.loadingIndicator}
-					animating={true}
-					color={colors.primary}
-				/>
-			)}
-			{showRoutes && (
-				<RouteRecommendations onClose={() => setShowRoutes(false)} />
-			)}
-			<Searchbar
-				placeholder="Where to?"
-				onChangeText={setSearchQuery}
-				value={searchQuery}
-				onIconPress={handleSearchPress}
-				onPress={handleSearchPress}
-				style={styles.searchbar}
+		<View style={styles.accountButton}>
+			<IconButton
+				icon="account"
+				mode="contained"
+				size={40}
+				onPress={() => handleAccountPress()}
 			/>
-		</SafeAreaView>
-	);
+		</View>
+
+      {loading && <ActivityIndicator style={styles.loadingIndicator} animating={true} color={colors.primary} />}
+      {showRoutes && (
+        <RouteRecommendations 
+          onClose={() => setShowRoutes(false)} 
+          onRouteSelect={handleRouteSelect}
+        />
+      )}
+       <Button
+        mode="contained"
+        icon="magnify"
+        onPress={handleSearchPress}
+        style={styles.searchButton}
+      >
+        Search
+      </Button>
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -164,6 +167,13 @@ const styles = StyleSheet.create({
 		left: "50%",
 		transform: [{ translateX: -10 }, { translateY: -10 }],
 	},
+  searchButton: {
+ 	position: 'absolute',
+    bottom: 10,
+    left: 10,
+    right: 10,
+    marginHorizontal: 10,
+    borderRadius: 10,  },
 });
 
 export default MainPage;
