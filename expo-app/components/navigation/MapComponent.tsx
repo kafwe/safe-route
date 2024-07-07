@@ -4,7 +4,6 @@ import MapView, { Marker, Polyline } from "react-native-maps";
 import Geocoder from "react-native-geocoding";
 import { NavigationContext } from "./NavigationContext";
 import { useTheme } from "react-native-paper";
-import Constants from 'expo-constants';
 
 interface MapComponentProps {
   userLoc?: { latitude: number; longitude: number };
@@ -18,7 +17,7 @@ interface MapComponentProps {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const GOOGLE_MAPS_API_KEY ="AIzaSyDPzWN903NrP9Yac5m-Th9SJ3z847pkAbU"
+const GOOGLE_MAPS_API_KEY = "AIzaSyDPzWN903NrP9Yac5m-Th9SJ3z847pkAbU";
 
 const MapComponent: React.FC<MapComponentProps> = ({
   userLoc = { latitude: -33.918861, longitude: 18.4233 }, // Cape Town, South Africa
@@ -42,7 +41,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const { destination, routes } = context;
 
   useEffect(() => {
-    Geocoder.init(GOOGLE_MAPS_API_KEY);  // Initialize Geocoder
+    Geocoder.init(GOOGLE_MAPS_API_KEY); // Initialize Geocoder
   }, []);
 
   useEffect(() => {
@@ -92,7 +91,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
           key={index}
           coordinates={decodePolyline(route.polyline)}
           strokeWidth={3}
-          strokeColor="blue"
+          strokeColor={route.summary === "Safest Route" ? "green" : "red"} // Color coding based on route type
         />
       ))}
     </MapView>

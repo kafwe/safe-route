@@ -1,9 +1,9 @@
-// app/index.tsx
 import React, { useState, useEffect, useContext } from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { getGoogleMapsApiKey } from "@/utils/getGoogleMapsApiKey";
 import { ActivityIndicator, IconButton, Button, Searchbar, useTheme, MD3Colors } from "react-native-paper";
+import { useLocalSearchParams } from "expo-router";
 import MapComponent from "@/components/navigation/MapComponent";
 import RouteRecommendations from "@/components/navigation/RouteRecommendations";
 import Geocoder from 'react-native-geocoding';
@@ -60,6 +60,7 @@ const MainPage: React.FC = () => {
       setLocation(location);
     })();
   }, []);
+  const params = useLocalSearchParams();
 
   useEffect(() => {
     const init = async () => {
@@ -87,32 +88,58 @@ const MainPage: React.FC = () => {
     }, [])
   );
 
-
-
-  const handleSearchLocation = (location: string) => {
+  const handleSearchLocation = async (location: string) => {
+    if (!location) {
+      console.warn("No destination provided");
+      return;
+    }
+    console.log(`Fetching routes for destination: ${location}`);
     setLoading(true);
-    Geocoder.from(location)
-      .then(json => {
-        const location = json.results[0].geometry.location;
-        setDestinationCoords({
-          latitude: location.lat,
-          longitude: location.lng,
-        });
-        setShowRoutes(true);
-      })
-      .catch(error => console.warn(error))
-      .finally(() => setLoading(false));
+    try {
+      const response = await Geocoder.from(location);
+      const result = response.results[0];
+      const locationCoords = result.geometry.location;
+      console.log(`Destination coordinates: ${JSON.stringify(locationCoords)}`);
+      setDestinationCoords({
+        latitude: locationCoords.lat,
+        longitude: locationCoords.lng,
+      });
+
+      // Log the backend request
+      const body = {
+        api_key: "AIzaSyC9pv7SjMiZUm4_mlTJaZc2zKt8kj-XlmY",
+        start_coords: [-34.04625271491547, 18.63355824834987], // Use actual user location in a real scenario
+        end_coords: [locationCoords.lat, locationCoords.lng],
+        bucket_name: "gcf-sources-1028767563254-europe-west2",
+        csv_file_path: "finaldata.csv",
+        crime_weight: 1,
+        load_shedding_weight: 1,
+      };
+      console.log("Backend request body:", body);
+
+      const routesResponse = await fetch("https://europe-west2-gradhack24jnb-608.cloudfunctions.net/my_route_function", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      const routesData = await routesResponse.json();
+      console.log("Backend response data:", routesData);
+      setRoutes({
+        safest: routesData.safest_route,
+        shortest: routesData.shortest_route,
+      });
+      setShowRoutes(true);
+    } catch (error) {
+      console.warn(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSearchPress = () => {
-      navigation.navigate('SearchPage' as never);
-    
-  };
-
-  const handleRouteSelect = (route: any) => {
-    // Update the map to show the selected route
-    // You might need to pass this information to your MapComponent
-    console.log("Selected route:", route);
+    navigation.navigate('SearchPage' as never);
   };
 
   return (
@@ -133,9 +160,7 @@ const MainPage: React.FC = () => {
           : []}
         locationChosen={() => {}}
         locationDeChosen={() => {}}
-        mode={1}
         destinationCoords={destinationCoords}
-        setDestinationCoords={setDestinationCoords}
         loading={loading}
         setLoading={setLoading}
       />
@@ -170,7 +195,7 @@ const MainPage: React.FC = () => {
       {showRoutes && (
         <RouteRecommendations 
           onClose={() => setShowRoutes(false)} 
-          onRouteSelect={handleRouteSelect}
+          onRouteSelect={() => {}}
         />
       )}
        <Button
@@ -209,7 +234,7 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -10 }, { translateY: -10 }],
   },
   searchButton: {
- position: 'absolute',
+    position: 'absolute',
     bottom: 10,
     left: 10,
     right: 10,
@@ -224,6 +249,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 80,
     left: 10,
+    borderRadius: 10,
   },
 });
 
