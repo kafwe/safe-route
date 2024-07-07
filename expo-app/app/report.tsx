@@ -8,7 +8,7 @@ import {
 	TextInputProps,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { Text } from "react-native-paper";
+import { Button, Text } from "react-native-paper";
 import * as Location from "expo-location";
 import { useToast } from "react-native-paper-toast";
 import {
@@ -17,6 +17,13 @@ import {
 	GooglePlaceDetail,
 } from "react-native-google-places-autocomplete";
 import Incident from "@/lib/types/incident";
+import { set, useForm } from "react-hook-form";
+import { FormBuilder } from "react-native-paper-form-builder";
+import supabase from "@/lib/supabase/supabaseConfig";
+import "react-native-get-random-values";
+import {v4 as uuidv4} from 'uuid';
+import { router } from "expo-router";
+
 
 export default function Report() {
 	const [location, setLocation] = useState({
@@ -28,7 +35,13 @@ export default function Report() {
 	const [incident, setIncident] = useState<Incident | undefined>(undefined);
 	const [height, setHeight] = useState("0%");
 	const mapRef = createRef<MapView>();
+	const {control, handleSubmit, setValue} = useForm({
+		defaultValues: {
+			incidentType: "",
+		},
+	});
 	const toaster = useToast();
+	const [focus, setFocus] = useState();
 
 	useEffect(() => {
 		try {
@@ -60,8 +73,8 @@ export default function Report() {
 		mapRef.current.animateToRegion({
 			latitude: location.latitude,
 			longitude: location.longitude,
-			latitudeDelta: 0.1,
-			longitudeDelta: 0.1,
+			latitudeDelta: 0.005,
+			longitudeDelta: 0.005,
 		});
 	};
 
@@ -74,29 +87,14 @@ export default function Report() {
 			latitudeDelta: 0.001,
 			longitudeDelta: 0.001,
 		});
-		changeRegion();
 	};
 
+	useEffect(() => {
+		changeRegion();
+	}, [setIncidentLocation]);
+
 	return (
-		<SafeAreaView style={styles.container}>
-			<MapView
-				// ref={mapRef}
-				style={styles.map}
-				initialRegion={location}
-				showsUserLocation={true}
-				showsMyLocationButton={true}
-				showsCompass={true}
-				scrollEnabled={true}
-				zoomEnabled={true}
-				pitchEnabled={true}
-				rotateEnabled={true}
-			>
-				<Marker
-					title="Yor are here"
-					description="This is a description"
-					coordinate={location}
-				/>
-			</MapView>
+		<KeyboardAvoidingView>
 			<KeyboardAvoidingView
 				style={{
 					...styles.autocomplete,
@@ -135,7 +133,123 @@ export default function Report() {
 					}}
 				/>
 			</KeyboardAvoidingView>
-		</SafeAreaView>
+			<View style={styles.container}>
+				
+			<MapView
+				ref={mapRef}
+				style={styles.map}
+				// initialRegion={location}
+				showsUserLocation={true}
+				showsMyLocationButton={true}
+				showsCompass={true}
+				scrollEnabled={true}
+				zoomEnabled={true}
+				pitchEnabled={true}
+				rotateEnabled={true}
+			>
+				{location && (
+					<Marker
+						coordinate={{
+							latitude: location.latitude,
+							longitude: location.longitude,
+						}}
+						// title="Incident Location"
+						// description="This is where the incident occurred"
+						draggable
+						onDragEnd={(e) => {
+							setIncidentLocation({
+								latitude: e.nativeEvent.coordinate.latitude,
+								longitude: e.nativeEvent.coordinate.longitude,
+							});
+						}}
+					/>	
+				)}	
+			</MapView>
+			<KeyboardAvoidingView style={styles.formContainer}
+				behavior="padding"
+			>
+				<Text variant="titleLarge">Report an Incident</Text>
+				<Text>
+					Please select the location of the incident on the map. Tip: you can drag the marker to the exact location.
+				</Text>
+				<FormBuilder
+					
+					control={control}
+					setFocus={setFocus}
+					formConfigArray={[
+						{
+							type: "select",
+							name: "incidentType",
+							textInputProps: {
+								label: "Incident Type",
+							},
+							rules: {
+								required: "Incident type is required",
+							},
+							options: [
+								{
+									label: "Carjacking",
+									value: "Carjacking",
+								},
+								{
+									label: "Theft out of or from motor vehicle",
+									value: "Theft out of or from motor vehicle",
+								},
+								{
+									label: "Murder",
+									value: "Murder"
+								},
+								{
+									label: "Theft of motor vehicle and motorcycle",
+									value: "Theft of motor vehicle and motorcycle"
+								}
+							],
+						},
+					]}
+				/>
+				<Button
+					mode="contained"
+					onPress={handleSubmit(async (data) => {
+						setIncident({
+							address: null,
+							carMake: null,
+							carModel: null,
+							carYear: null,
+							description: null,
+							incidentId: uuidv4() as string,
+							latitude: location.latitude,
+							licensePlate: null,
+							location_name: null,
+							longitude: location.longitude,
+							timestamp: new Date().toISOString(),
+							type: data.incidentType
+						});
+						if (incident) {
+							const {error} = await supabase.from('incidents')
+								.insert(incident)
+							
+							if (error){
+								console.log(error)
+								toaster.show({
+									message: "There was an error. Please try again later.",
+									type: "error"
+								})
+							} else {
+								toaster.show({
+									message: "The incident was reported successfully.",
+									type: "success"
+								})
+								router.back()
+							}
+						}
+					})}
+				>
+					Submit
+				</Button>
+			</KeyboardAvoidingView>
+			</View>
+
+		</KeyboardAvoidingView>
 	);
 }
 
@@ -143,21 +257,17 @@ const styles = StyleSheet.create({
 	container: {
 		width: "100%",
 		height: "100%",
-		display: "flex",
-		flexDirection: "column",
 	},
 	map: {
-		flexBasis: "50%",
 		width: "100%",
-		position: "absolute",
-		top: 0,
-		left: 0,
 		height: "50%",
 	},
 	formContainer: {
-		flexBasis: "50%",
 		width: "100%",
 		padding: 20,
+		height: "100%",
+		flex: 1,
+		gap: 20,
 	},
 	autocomplete: {
 		position: "absolute",
@@ -165,5 +275,6 @@ const styles = StyleSheet.create({
 		width: "100%",
 		height: "100%",
 		padding: 20,
+		zIndex: 5
 	},
 });

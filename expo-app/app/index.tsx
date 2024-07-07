@@ -1,7 +1,7 @@
 // app/index.tsx
 import React, { useState, useEffect, useContext } from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
-import { useNavigation, useRouter } from "expo-router";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { getGoogleMapsApiKey } from "@/utils/getGoogleMapsApiKey";
 import { ActivityIndicator, IconButton, Button, Searchbar, useTheme, MD3Colors } from "react-native-paper";
 import MapComponent from "@/components/navigation/MapComponent";
@@ -9,6 +9,11 @@ import RouteRecommendations from "@/components/navigation/RouteRecommendations";
 import Geocoder from 'react-native-geocoding';
 import { NavigationContext } from "@/components/navigation/NavigationContext";
 import { ButtonGroup } from "react-native-elements";
+import * as Location from 'expo-location';
+import { useToast } from "react-native-paper-toast";
+import supabase from "@/lib/supabase/supabaseConfig";
+import { set } from "react-hook-form";
+
 
 const MainPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,7 +23,43 @@ const MainPage: React.FC = () => {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { setRoutes } = useContext(NavigationContext);
+  const [incidents, setIncidents] = useState<{
+      address: string | null;
+      carMake: string | null;
+      carModel: string | null;
+      carYear: number | null;
+      description: string | null;
+      incidentId: string;
+      latitude: number | null;
+      licensePlate: string | null;
+      location_name: string | null;
+      longitude: number | null;
+      timestamp: string | null;
+      type: string | null;
+    }[] | null
+  >([]);
 	const router = useRouter();
+  const toaster = useToast();
+
+  const [location, setLocation] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        toaster.show({
+          duration: 2000,
+          message: "Permission to access location was denied",
+          type: "error",
+        })
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+    })();
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -26,7 +67,27 @@ const MainPage: React.FC = () => {
       Geocoder.init(apiKey);
     };
     init();
+
+    (async () => {
+    const { data, error } = await supabase
+      .from('incidents')
+      .select()
+      setIncidents(data);
+    })();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      (async () => {
+        const { data, error } = await supabase
+          .from('incidents')
+          .select()
+          setIncidents(data);
+        })();
+    }, [])
+  );
+
+
 
   const handleSearchLocation = (location: string) => {
     setLoading(true);
@@ -58,7 +119,18 @@ const MainPage: React.FC = () => {
     <View style={styles.container}>
       <MapComponent
         userLoc={{ latitude: -33.918861, longitude: 18.4233 }}
-        resultsArr={[]}
+        resultsArr={incidents ? 
+          incidents.map(incident => {
+            // { coords: { latitude: number; longitude: number }; title: string }
+            return {
+              coords: {
+                latitude: incident.latitude || 0,
+                longitude: incident.longitude || 0,
+              },
+              title: incident.type || "Unknown",
+            };
+          })
+          : []}
         locationChosen={() => {}}
         locationDeChosen={() => {}}
         mode={1}

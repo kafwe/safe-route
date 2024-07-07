@@ -8,6 +8,8 @@ import pandas as pd
 from geopy.distance import geodesic
 from geopy.point import Point
 import geopy.distance
+import csv
+
 
 
 # Initialize Faker and Google Maps client
@@ -152,14 +154,17 @@ def generate_incidents(num_incidents):
         car_model = random.choice(car_models[car_make])
         car_year = fake.year()
         license_plate = fake.license_plate()
-        
+
         incident_data = {
             "incidentId": incident_id,
             "type": random.choice(["Carjacking", 
                                            "Theft out of or from motor vehicle", 
                                            "Murder", 
                                            "Theft of motor vehicle and motorcycle"]),
-            "location": incident_location,
+            "latitude": incident_location["latitude"],
+            "longitude": incident_location["longitude"],
+            "location_name": incident_location["name"],
+            "address": incident_location["address"],
             "timestamp": timestamp,
             "description": description,
             "carMake": car_make,
@@ -167,6 +172,8 @@ def generate_incidents(num_incidents):
             "carYear": car_year,
             "licensePlate": license_plate
         }
+
+        print(incident_data)
         
         incidents.append(incident_data)
                 
@@ -179,9 +186,13 @@ max_trips_per_user = 15
 users = generate_users_and_trips(num_users, min_trips_per_user, max_trips_per_user)
 incidents = generate_incidents(100)
 
-# Save to JSON file (optional)
-with open('user_data.json', 'w') as f:
+# # Save to JSON file (optional)
+with open('user_data.csv', 'w') as f:
     json.dump(users, f, indent=4)
+
+# create a df from the incidents data and save to csv
+df = pd.DataFrame(incidents)
+df.to_csv("incident_data.csv", index=False)
 
 with open('incident_data.json', 'w') as f:
     json.dump(incidents, f, indent=4)
