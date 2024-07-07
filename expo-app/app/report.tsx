@@ -211,7 +211,7 @@ export default function Report() {
 					mode="contained"
 					onPress={handleSubmit(async (data) => {
 						setIncident({
-							address: null,
+							address: "23A Unity Rd, Retreat, Cape Town, 7965, South Africa",
 							carMake: null,
 							carModel: null,
 							carYear: null,

@@ -37,6 +37,7 @@ export default function RootLayout() {
   }
 
   return (
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <PaperProvider>
       <ToastProvider>
         <NavigationProvider>
@@ -77,5 +78,6 @@ export default function RootLayout() {
         </NavigationProvider>
         </ToastProvider>
       </PaperProvider>
+    </ThemeProvider>
   );
 }
