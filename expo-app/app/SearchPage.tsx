@@ -34,9 +34,8 @@ const SearchPage: React.FC = () => {
   const [search, setSearch] = useState<string>("");
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
   const [predictions, setPredictions] = useState<any[]>([]);
-  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const { setRoutes, setDestination, routes } = useContext(NavigationContext) || {};
+  const { setRoutes, setDestination, routes, selectedRoute, setSelectedRoute } = useContext(NavigationContext) || {};
   const { colors } = useTheme();
   const navigation = useNavigation(); // Use the navigation hook
 
@@ -222,12 +221,12 @@ const SearchPage: React.FC = () => {
 
   const renderRoute = ({ item, index }: { item: Route; index: number }) => (
     <TouchableOpacity key={index} onPress={() => handleRoutePress(item)}>
-      <Card style={styles.routeCard}>
-        <View style={[styles.routeContent, index === 0 ? styles.safestRoute : styles.shortestRoute]}>
+      <Card style={[styles.routeCard, index === 0 ? styles.safestRoute : styles.shortestRoute]}>
+        <Card.Content>
           <Text style={styles.routeText}>Summary: {item.summary}</Text>
           <Text style={styles.routeText}>Duration: {item.duration}</Text>
           <Text style={styles.routeText}>Distance: {item.distance}</Text>
-        </View>
+        </Card.Content>
       </Card>
     </TouchableOpacity>
   );
@@ -275,20 +274,7 @@ const SearchPage: React.FC = () => {
         onNavigate={handleNavigate}
         route={selectedRoute}
       />
-      {/* Temporary UI to display fetched routes */}
-      {routes && routes.length > 0 && (
-        <View style={{ padding: 10 }}>
-          <Text>Fetched Routes:</Text>
-          {routes.map((route, index) => (
-            <View key={index} style={{ marginVertical: 5 }}>
-              <Text>Route {index + 1}:</Text>
-              <Text>Summary: {route.summary}</Text>
-              <Text>Duration: {route.duration}</Text>
-              <Text>Distance: {route.distance}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+
     </View>
   );
 };
@@ -351,9 +337,9 @@ const styles = StyleSheet.create({
     borderColor: "green",
   },
   shortestRoute: {
-    backgroundColor: "#d1ecf1",
+    backgroundColor: "#f8d7da",
     borderLeftWidth: 4,
-    borderColor: "blue",
+    borderColor: "red",
   },
   routeText: {
     fontSize: 16,
