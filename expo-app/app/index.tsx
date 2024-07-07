@@ -1,9 +1,9 @@
 // app/index.tsx
 import React, { useState, useEffect, useContext } from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { getGoogleMapsApiKey } from "@/utils/getGoogleMapsApiKey";
-import { ActivityIndicator, IconButton, Button, Searchbar, useTheme } from "react-native-paper";
+import { ActivityIndicator, IconButton, Button, Searchbar, useTheme, MD3Colors } from "react-native-paper";
 import MapComponent from "@/components/navigation/MapComponent";
 import RouteRecommendations from "@/components/navigation/RouteRecommendations";
 import Geocoder from 'react-native-geocoding';
@@ -18,6 +18,7 @@ const MainPage: React.FC = () => {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { setRoutes } = useContext(NavigationContext);
+	const router = useRouter();
 
   useEffect(() => {
     const init = async () => {
@@ -75,6 +76,24 @@ const MainPage: React.FC = () => {
           onPress={() => navigation.navigate('SearchPage' as never)}
         />
       </View>
+      <View style={styles.reportButton}>
+        <IconButton
+          icon="alert-octagon"
+          iconColor={MD3Colors.error50}
+          mode="contained"
+          size={40}
+          onPress={() => router.push("report")}
+        />
+      </View>
+
+      {/* <View style={styles.accountButton}>
+        <IconButton
+          icon="account"
+          mode="contained"
+          size={40}
+          onPress={() => router.push("account")}
+        />
+      </View> */}
       {loading && <ActivityIndicator style={styles.loadingIndicator} animating={true} color={colors.primary} />}
       {showRoutes && (
         <RouteRecommendations 
@@ -124,6 +143,16 @@ const styles = StyleSheet.create({
     right: 10,
     marginHorizontal: 10,
     borderRadius: 10,  },
+  reportButton: {
+    position: "absolute",
+    bottom: 80,
+    right: 10,
+  },
+  accountButton: {
+    position: "absolute",
+    bottom: 80,
+    left: 10,
+  },
 });
 
 export default MainPage;
