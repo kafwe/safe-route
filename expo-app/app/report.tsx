@@ -241,7 +241,7 @@ export default function Report() {
 							incidentId: uuidv4() as string,
 							latitude: location.latitude,
 							licensePlate: null,
-							location_name: null,
+							location_name: address,
 							longitude: location.longitude,
 							timestamp: new Date().toISOString(),
 							type: data.incidentType
