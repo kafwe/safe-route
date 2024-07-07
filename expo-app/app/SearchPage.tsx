@@ -226,7 +226,6 @@ const SearchPage: React.FC = () => {
       <Card style={[styles.routeCard, index === 0 ? styles.safestRoute : styles.shortestRoute]}>
         <Card.Content>
           <Text style={styles.routeText}>Summary: {item.summary}</Text>
-          <Text style={styles.routeText}>Duration: {item.duration}</Text>
           <Text style={styles.routeText}>Distance: {item.distance}</Text>
         </Card.Content>
       </Card>

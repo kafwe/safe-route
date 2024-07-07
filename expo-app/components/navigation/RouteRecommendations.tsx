@@ -40,8 +40,6 @@ const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({ visible, onClose,
             style={styles.icon}
           />
           <Text style={tw`text-lg font-bold mb-2`}>{route.summary}</Text>
-          <Text style={tw`text-gray-500 mb-2`}>Duration: {route.duration}</Text>
-          <Text style={tw`text-gray-500 mb-4`}>Distance: {route.distance}</Text>
           <TouchableOpacity style={styles.button} onPress={onNavigate}>
             <Text style={tw`text-white text-center text-lg font-bold`}>Navigate</Text>
           </TouchableOpacity>
