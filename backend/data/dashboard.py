@@ -69,7 +69,6 @@ def generate_users_and_trips(num_users, min_trips_per_user, max_trips_per_user):
             "carMake": car_make,
             "carModel": random.choice(car_models[car_make]),
             "carYear": fake.year(),
-            "licensePlate": fake.license_plate(),
             "trips": []
         }
         
@@ -151,7 +150,6 @@ def generate_incidents(num_incidents):
         car_make = random.choice(car_makes)
         car_model = random.choice(car_models[car_make])
         car_year = fake.year()
-        license_plate = fake.license_plate()
         
         incident_data = {
             "incidentId": incident_id,
@@ -165,7 +163,6 @@ def generate_incidents(num_incidents):
             "carMake": car_make,
             "carModel": car_model,
             "carYear": car_year,
-            "licensePlate": license_plate
         }
         
         incidents.append(incident_data)
