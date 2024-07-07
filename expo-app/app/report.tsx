@@ -43,6 +43,23 @@ export default function Report() {
 	const toaster = useToast();
 	const [focus, setFocus] = useState();
 
+	const [address, setAddress] = useState(null);
+	const getAddressFromCoordinates = async (latitude: number, longitude: number) => {
+		try {
+		  const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY}`);
+		  const data = await response.json();
+	
+		  if (data.results && data.results.length > 0) {
+			setAddress(data.results[0].formatted_address);
+		  } else {
+			setAddress('No address found');
+		  }
+		} catch (error) {
+		  console.error(error);
+		  setAddress('Error fetching address');
+		}
+	  };
+
 	useEffect(() => {
 		try {
 			(async () => {
@@ -61,6 +78,7 @@ export default function Report() {
 						latitudeDelta: 0.001,
 						longitudeDelta: 0.001,
 					});
+					getAddressFromCoordinates(location.coords.latitude, location.coords.longitude);
 				}
 			})();
 		} catch (error) {
@@ -76,6 +94,7 @@ export default function Report() {
 			latitudeDelta: 0.005,
 			longitudeDelta: 0.005,
 		});
+		getAddressFromCoordinates(location.latitude, location.longitude);
 	};
 
 	const setIncidentLocation = (location: {
@@ -87,10 +106,12 @@ export default function Report() {
 			latitudeDelta: 0.001,
 			longitudeDelta: 0.001,
 		});
+		getAddressFromCoordinates(location.latitude, location.longitude);
 	};
 
 	useEffect(() => {
 		changeRegion();
+		getAddressFromCoordinates(location.latitude, location.longitude);
 	}, [setIncidentLocation]);
 
 	return (
@@ -210,8 +231,9 @@ export default function Report() {
 				<Button
 					mode="contained"
 					onPress={handleSubmit(async (data) => {
+						await getAddressFromCoordinates(location.latitude, location.longitude)
 						setIncident({
-							address: "23A Unity Rd, Retreat, Cape Town, 7965, South Africa",
+							address: address,
 							carMake: null,
 							carModel: null,
 							carYear: null,
