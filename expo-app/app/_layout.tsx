@@ -12,6 +12,7 @@ import { ToastProvider } from "react-native-paper-toast";
 import User from "@/lib/types/user";
 import { NavigationProvider } from "@/components/navigation/NavigationContext";
 
+import AuthContext from "@/lib/contexts/authContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
