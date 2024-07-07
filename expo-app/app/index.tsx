@@ -41,7 +41,37 @@ const MainPage: React.FC = () => {
 	const router = useRouter();
   const toaster = useToast();
 
-  const [location, setLocation] = useState(null);
+  const [location, setLocation] = useState({
+		latitude: 10,
+		longitude: 10,
+		latitudeDelta: 0.001,
+		longitudeDelta: 0.001,
+	});
+
+  useEffect(() => {
+		try {
+			(async () => {
+				let { status } =
+					await Location.requestForegroundPermissionsAsync();
+				if (status !== "granted") {
+					toaster.show({
+						message: "Location permission denied",
+						type: "error",
+					});
+				} else {
+					let location = await Location.getCurrentPositionAsync({});
+					setLocation({
+						latitude: location.coords.latitude,
+						longitude: location.coords.longitude,
+						latitudeDelta: 0.001,
+						longitudeDelta: 0.001,
+					});
+				}
+			})();
+		} catch (error) {
+			console.warn(error);
+		}
+	}, []);
 
   useEffect(() => {
     (async () => {
@@ -60,6 +90,8 @@ const MainPage: React.FC = () => {
       setLocation(location);
     })();
   }, []);
+
+
   const params = useLocalSearchParams();
 
   useEffect(() => {
@@ -145,7 +177,12 @@ const MainPage: React.FC = () => {
   return (
     <View style={styles.container}>
       <MapComponent
-        userLoc={{ latitude: -33.918861, longitude: 18.4233 }}
+        userLoc={{ 
+          // latitude: location?.latitude || -33.918861, 
+          // longitude: location?.longitude || 18.4233
+          latitude: -33.918861,
+          longitude: 18.4233
+        }}
         resultsArr={incidents ? 
           incidents.map(incident => {
             // { coords: { latitude: number; longitude: number }; title: string }

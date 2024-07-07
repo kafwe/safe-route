@@ -125,6 +125,8 @@ const SearchPage: React.FC = () => {
       const safestRoute = filterResponse.data.safest_route;
       const shortestRoute = filterResponse.data.shortest_route;
 
+      console.log("Safest route:", safestRoute);
+
       const routes = [
         {
           duration: safestRoute.duration || "unknown",
@@ -255,13 +257,13 @@ const SearchPage: React.FC = () => {
         keyExtractor={(item) => item.place_id}
         contentContainerStyle={styles.predictionList}
       />
-      <FlatList
+      {/* <FlatList
         data={buttonData}
         renderItem={renderButton}
         keyExtractor={(item) => item.id}
         horizontal
         contentContainerStyle={styles.buttonList}
-      />
+      /> */}
       <ScrollView>
         {routes && routes.map((route, index) => renderRoute({ item: route, index }))}
       </ScrollView>
@@ -286,7 +288,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   searchBar: {
-    marginBottom: 20,
+    marginBottom: 0,
   },
   searchButton: {
     marginHorizontal: 10,
