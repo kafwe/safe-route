@@ -1,0 +1,6 @@
+{
+  "type": "module",
+  "dependencies": {
+    "playht": "^0.9.8"
+  }
+}
