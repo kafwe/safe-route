@@ -1,3 +1,4 @@
 .env
 /**/.env
+./expo-app/.env
 expo-app/.env
