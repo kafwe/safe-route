@@ -91,11 +91,64 @@ const SearchPage: React.FC = () => {
       return;
     }
 
-    // Construct Google Maps URL
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${destinationCoords.lat},${destinationCoords.lng}&travelmode=driving`;
+    try {
+      // Prepare request body for filtering API
+      const body = {
+        api_key: GOOGLE_MAPS_API_KEY,
+        start_coords: [currentLocation.latitude, currentLocation.longitude],
+        end_coords: [destinationCoords.lat, destinationCoords.lng],
+        bucket_name: "gcf-sources-1028767563254-europe-west2",
+        csv_file_path: "finaldata.csv",
+        crime_weight: 1,
+        load_shedding_weight: 1
+      };
 
-    // Open the URL
-    Linking.openURL(googleMapsUrl).catch(err => console.error("Error opening Google Maps", err));
+      console.log("Request body for filtering API:", body);
+
+      // Call your filtering API with the current location and destination coordinates
+      const filterResponse = await axios.post(
+        'https://europe-west2-gradhack24jnb-608.cloudfunctions.net/my_route_function',
+        body,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log("Filtering API response:", filterResponse.data);
+
+      // Parse response from filtering API
+      const safestRoute = filterResponse.data.safest_route;
+      const shortestRoute = filterResponse.data.shortest_route;
+
+      console.log("Safest route:", safestRoute);
+
+      const routes = [
+        {
+          duration: safestRoute.duration || "unknown",
+          distance: safestRoute.distance,
+          summary: "Safest Route",
+          polyline: safestRoute.polyline,
+        },
+        {
+          duration: shortestRoute.duration || "unknown",
+          distance: shortestRoute.distance,
+          summary: "Shortest Route",
+          polyline: shortestRoute.polyline,
+        },
+      ];
+
+      console.log("Fetched routes:", routes);
+
+      // Update routes in context
+      setRoutes && setRoutes(routes);
+      setDestination && setDestination(destination);
+
+    } catch (error) {
+      console.error("Error fetching route data:", error.response ? error.response.data : error.message);
+      Alert.alert("Error", "Could not fetch route data. Please try again.");
+    }
   };
 
   const handleSearchSubmit = () => {
@@ -145,8 +198,17 @@ const SearchPage: React.FC = () => {
 
   const handleNavigate = () => {
     setIsModalVisible(false);
-    // Navigate to the map page with the selected route details
-    navigation.navigate('index', { route: selectedRoute });
+
+    if (!selectedRoute) {
+      console.error("No route selected");
+      return;
+    }
+
+    // Construct Google Maps URL with selected route polyline
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${search}&travelmode=driving`;
+
+    // Open the URL
+    Linking.openURL(googleMapsUrl).catch(err => console.error("Error opening Google Maps", err));
   };
 
   const renderButton = ({ item }: { item: ButtonData }) => (
