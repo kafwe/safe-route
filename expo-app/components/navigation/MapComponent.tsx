@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useContext } from "react";
-import { View, StyleSheet, Alert } from "react-native";
+import { View, StyleSheet } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import Geocoder from "react-native-geocoding";
 import { NavigationContext } from "./NavigationContext";
@@ -17,7 +17,7 @@ interface MapComponentProps {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyDPzWN903NrP9Yac5m-Th9SJ3z847pkAbU";
+const GOOGLE_MAPS_API_KEY = "AIzaSyC70Vnp5i7-5G8nJ0NHS95ITe9PbkIGc_Y";
 
 const MapComponent: React.FC<MapComponentProps> = ({
   userLoc = { latitude: -33.918861, longitude: 18.4233 }, // Cape Town, South Africa
@@ -91,7 +91,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
           key={index}
           coordinates={decodePolyline(route.polyline)}
           strokeWidth={3}
-          strokeColor={route.summary === "Safest Route" ? "green" : "red"} // Color coding based on route type
+          strokeColor={"blue"} // Default route color
         />
       ))}
     </MapView>

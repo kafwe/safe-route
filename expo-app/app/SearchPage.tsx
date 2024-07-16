@@ -21,7 +21,7 @@ interface Route {
   polyline: string;
 }
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyC9pv7SjMiZUm4_mlTJaZc2zKt8kj-XlmY'; // Replace with your actual Google Maps API key
+const GOOGLE_MAPS_API_KEY = 'AIzaSyC70Vnp5i7-5G8nJ0NHS95ITe9PbkIGc_Y';
 
 const CAPE_TOWN_LOCATION = {
   latitude: -33.918861,
@@ -32,7 +32,7 @@ const RADIUS = 50000; // 50 kilometers
 
 const SearchPage: React.FC = () => {
   const [search, setSearch] = useState<string>("");
-  const [currentLocation, setCurrentLocation] = useState<string | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const [predictions, setPredictions] = useState<any[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { setRoutes, setDestination, routes, selectedRoute, setSelectedRoute } = useContext(NavigationContext) || {};
@@ -54,7 +54,7 @@ const SearchPage: React.FC = () => {
       }
 
       let location = await Location.getCurrentPositionAsync({});
-      setCurrentLocation(`${location.coords.latitude},${location.coords.longitude}`);
+      setCurrentLocation({latitude: location.coords.latitude, longitude: location.coords.longitude});
     })();
   }, []);
 
@@ -83,9 +83,6 @@ const SearchPage: React.FC = () => {
       return;
     }
 
-    // Convert current location to coordinates
-    const [currentLat, currentLng] = currentLocation.split(',').map(Number);
-
     // Get destination coordinates from address
     const destinationCoords = await getCoordinatesFromAddress(destination);
 
@@ -95,61 +92,28 @@ const SearchPage: React.FC = () => {
     }
 
     try {
-      // Prepare request body for filtering API
-      const body = {
-        api_key: GOOGLE_MAPS_API_KEY,
-        start_coords: [currentLat, currentLng],
-        end_coords: [destinationCoords.lat, destinationCoords.lng],
-        bucket_name: "gcf-sources-1028767563254-europe-west2",
-        csv_file_path: "finaldata.csv",
-        crime_weight: 1,
-        load_shedding_weight: 1
-      };
-
-      console.log("Request body for filtering API:", body);
-
-      // Call your filtering API with the current location and destination coordinates
-      const filterResponse = await axios.post(
-        'https://europe-west2-gradhack24jnb-608.cloudfunctions.net/my_route_function',
-        body,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+      // Fetch route from Google Maps Directions API
+      const response = await axios.get(
+        `https://maps.googleapis.com/maps/api/directions/json?origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${destinationCoords.lat},${destinationCoords.lng}&key=${GOOGLE_MAPS_API_KEY}`
       );
 
-      console.log("Filtering API response:", filterResponse.data);
+      if (response.data.status === 'OK') {
+        const route = response.data.routes[0];
+        const routeData = {
+          duration: route.legs[0].duration.text,
+          distance: route.legs[0].distance.text,
+          summary: route.summary,
+          polyline: route.overview_polyline.points,
+        };
 
-      // Parse response from filtering API
-      const safestRoute = filterResponse.data.safest_route;
-      const shortestRoute = filterResponse.data.shortest_route;
-
-      console.log("Safest route:", safestRoute);
-
-      const routes = [
-        {
-          duration: safestRoute.duration || "unknown",
-          distance: safestRoute.distance,
-          summary: "Safest Route",
-          polyline: safestRoute.polyline,
-        },
-        {
-          duration: shortestRoute.duration || "unknown",
-          distance: shortestRoute.distance,
-          summary: "Shortest Route",
-          polyline: shortestRoute.polyline,
-        },
-      ];
-
-      console.log("Fetched routes:", routes);
-
-      // Update routes in context
-      setRoutes && setRoutes(routes);
-      setDestination && setDestination(destination);
-
+        // Update routes in context
+        setRoutes && setRoutes([routeData]);
+        setDestination && setDestination(destination);
+      } else {
+        Alert.alert("Error", "Could not fetch route data. Please try again.");
+      }
     } catch (error) {
-      console.error("Error fetching route data:", error.response ? error.response.data : error.message);
+      console.error("Error fetching route data:", error);
       Alert.alert("Error", "Could not fetch route data. Please try again.");
     }
   };
@@ -226,6 +190,7 @@ const SearchPage: React.FC = () => {
       <Card style={[styles.routeCard, index === 0 ? styles.safestRoute : styles.shortestRoute]}>
         <Card.Content>
           <Text style={styles.routeText}>Summary: {item.summary}</Text>
+          <Text style={styles.routeText}>Duration: {item.duration}</Text>
           <Text style={styles.routeText}>Distance: {item.distance}</Text>
         </Card.Content>
       </Card>
@@ -256,13 +221,13 @@ const SearchPage: React.FC = () => {
         keyExtractor={(item) => item.place_id}
         contentContainerStyle={styles.predictionList}
       />
-      {/* <FlatList
+      <FlatList
         data={buttonData}
         renderItem={renderButton}
         keyExtractor={(item) => item.id}
         horizontal
         contentContainerStyle={styles.buttonList}
-      /> */}
+      />
       <ScrollView>
         {routes && routes.map((route, index) => renderRoute({ item: route, index }))}
       </ScrollView>
@@ -275,7 +240,6 @@ const SearchPage: React.FC = () => {
         onNavigate={handleNavigate}
         route={selectedRoute}
       />
-
     </View>
   );
 };
@@ -287,7 +251,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   searchBar: {
-    marginBottom: 0,
+    marginBottom: 20,
   },
   searchButton: {
     marginHorizontal: 10,

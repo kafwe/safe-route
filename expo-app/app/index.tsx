@@ -1,19 +1,16 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import { View, StyleSheet, Linking } from "react-native";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { getGoogleMapsApiKey } from "@/utils/getGoogleMapsApiKey";
-import { ActivityIndicator, IconButton, Button, Searchbar, useTheme, MD3Colors } from "react-native-paper";
+import { ActivityIndicator, IconButton, Button, useTheme, MD3Colors } from "react-native-paper";
 import { useLocalSearchParams } from "expo-router";
 import MapComponent from "@/components/navigation/MapComponent";
 import RouteRecommendations from "@/components/navigation/RouteRecommendations";
 import Geocoder from 'react-native-geocoding';
 import { NavigationContext } from "@/components/navigation/NavigationContext";
-import { ButtonGroup } from "react-native-elements";
 import * as Location from 'expo-location';
 import { useToast } from "react-native-paper-toast";
-import supabase from "@/lib/supabase/supabaseConfig";
-import { set } from "react-hook-form";
-
+import axios from 'axios';
 
 const MainPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,7 +19,7 @@ const MainPage: React.FC = () => {
   const [showRoutes, setShowRoutes] = useState(false);
   const navigation = useNavigation();
   const { colors } = useTheme();
-  const { setRoutes } = useContext(NavigationContext);
+  const { setRoutes, routes } = useContext(NavigationContext);
   const [incidents, setIncidents] = useState<{
       address: string | null;
       carMake: string | null;
@@ -75,6 +72,8 @@ const MainPage: React.FC = () => {
 
   useEffect(() => {
     (async () => {
+      const apiKey = await getGoogleMapsApiKey();
+      Geocoder.init(apiKey);
       
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -88,24 +87,6 @@ const MainPage: React.FC = () => {
 
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
-    })();
-  }, []);
-
-
-  const params = useLocalSearchParams();
-
-  useEffect(() => {
-    const init = async () => {
-      const apiKey = await getGoogleMapsApiKey();
-      Geocoder.init(apiKey);
-    };
-    init();
-
-    (async () => {
-    const { data, error } = await supabase
-      .from('incidents')
-      .select()
-      setIncidents(data);
     })();
   }, []);
 
@@ -136,10 +117,12 @@ const MainPage: React.FC = () => {
         latitude: locationCoords.lat,
         longitude: locationCoords.lng,
       });
+      console.log("Destination coords set:", {latitude: locationCoords.lat, longitude: locationCoords.lng});
+
 
       // Log the backend request
       const body = {
-        api_key: "AIzaSyC9pv7SjMiZUm4_mlTJaZc2zKt8kj-XlmY",
+        api_key: "AIzaSyDPzWN903NrP9Yac5m-Th9SJ3z847pkAbU",
         start_coords: [-34.04625271491547, 18.63355824834987], // Use actual user location in a real scenario
         end_coords: [locationCoords.lat, locationCoords.lng],
         bucket_name: "gcf-sources-1028767563254-europe-west2",
@@ -174,18 +157,26 @@ const MainPage: React.FC = () => {
     navigation.navigate('SearchPage' as never);
   };
 
+  const handleNavigate = () => {
+    console.log('Navigate button pressed');
+    if (destinationCoords) {
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destinationCoords.latitude},${destinationCoords.longitude}&travelmode=driving`;
+      console.log(`Opening Google Maps with URL: ${googleMapsUrl}`);
+      Linking.openURL(googleMapsUrl).catch(err => console.error("Error opening Google Maps", err));
+    } else {
+      console.warn('No destination coordinates available');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <MapComponent
         userLoc={{ 
-          // latitude: location?.latitude || -33.918861, 
-          // longitude: location?.longitude || 18.4233
           latitude: -33.918861,
           longitude: 18.4233
         }}
         resultsArr={incidents ? 
           incidents.map(incident => {
-            // { coords: { latitude: number; longitude: number }; title: string }
             return {
               coords: {
                 latitude: incident.latitude || 0,
@@ -220,14 +211,6 @@ const MainPage: React.FC = () => {
         />
       </View>
 
-      {/* <View style={styles.accountButton}>
-        <IconButton
-          icon="account"
-          mode="contained"
-          size={40}
-          onPress={() => router.push("account")}
-        />
-      </View> */}
       {loading && <ActivityIndicator style={styles.loadingIndicator} animating={true} color={colors.primary} />}
       {showRoutes && (
         <RouteRecommendations 
@@ -235,13 +218,21 @@ const MainPage: React.FC = () => {
           onRouteSelect={() => {}}
         />
       )}
-       <Button
+      <Button
         mode="contained"
         icon="magnify"
         onPress={handleSearchPress}
         style={styles.searchButton}
       >
         Search
+      </Button>
+      <Button
+        mode="contained"
+        icon="navigation"
+        onPress={handleNavigate}
+        style={styles.navigateButton}
+      >
+        Navigate
       </Button>
     </View>
   );
@@ -276,17 +267,20 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     marginHorizontal: 10,
-    borderRadius: 10,  },
+    borderRadius: 10,  
+  },
+  navigateButton: {
+    position: 'absolute',
+    bottom: 60,
+    left: 10,
+    right: 10,
+    marginHorizontal: 10,
+    borderRadius: 10,  
+  },
   reportButton: {
     position: "absolute",
     bottom: 80,
     right: 10,
-  },
-  accountButton: {
-    position: "absolute",
-    bottom: 80,
-    left: 10,
-    borderRadius: 10,
   },
 });
 
