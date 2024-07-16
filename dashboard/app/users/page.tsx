@@ -5067,9 +5067,9 @@ export const columns: ColumnDef<User>[] = [
             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                 <UserCarDialog user={user} car={
                     {
-                        make: "Toyota",
-                        model: "Corolla",
-                        year: 2019,
+                        make: user.carMake,
+                        model: user.carModel,
+                        year: user.carYear,
                     }
                 } />
             </DropdownMenuItem>

@@ -47,12 +47,6 @@ export function SiteHeader() {
           >
             Users
           </Link>
-          <Link
-            href="/incidents"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            AI
-          </Link>
         </nav>
         <Sheet>
           <SheetTrigger asChild>
@@ -82,12 +76,6 @@ export function SiteHeader() {
                 className="text-muted-foreground hover:text-foreground"
               >
                 Users
-              </Link>
-              <Link
-                href="/incidents"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                AI
               </Link>
             </nav>
           </SheetContent>

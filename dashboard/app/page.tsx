@@ -67,12 +67,14 @@ export default function Dashboard() {
   const [averageRiskScore, setAverageRiskScore] = useState(0);
   const [recentIncidents, setRecentIncidents] = useState([]);
   const [totalTripsPerMonth, setTotalTripsPerMonth] = useState([]);
- 
+
+  console.log(totalTripsPerMonth);  
   useEffect(() => {
     async function fetchData() {
       setTotalTrips(await fetchTotalTrips());
       setTotalIncidents(await fetchTotalIncidents());
       setAverageRiskScore(await fetchAverageRiskScore());
+      setTotalTripsPerMonth(await fetchTotalTripsPerMonth());
     }
     fetchData();
     fetchAndSubscribeToIncidents(setRecentIncidents);
@@ -139,6 +141,7 @@ export default function Dashboard() {
                   <TableRow>
                     <TableHead>Type</TableHead>
                     <TableHead>Location</TableHead>
+                    <TableHead>Date</TableHead>
                     <TableHead>Time</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -163,6 +166,7 @@ export default function Dashboard() {
                               </div>
                             </TableCell>
                             <TableCell>{cutAddress}</TableCell> {/* Render the modified address */}
+                            <TableCell>{date.toLocaleDateString()}</TableCell>
                             <TableCell>{formattedTime}</TableCell>
                           </TableRow>
                         );

@@ -115,6 +115,19 @@ const trips = [
 },
 ]
 
+function swapQuotes(inputString) {
+  // Replace double quotes with a temporary placeholder
+  let tempString = inputString.replace(/"/g, 'TEMP_PLACEHOLDER');
+
+  // Replace single quotes with double quotes
+  tempString = tempString.replace(/'/g, '"');
+
+  // Replace the temporary placeholder with single quotes
+  tempString = tempString.replace(/TEMP_PLACEHOLDER/g, "'");
+
+  return tempString;
+}
+
 export function UserTripDialog({ user }: { user: User}) {
 
   return (
@@ -133,7 +146,7 @@ export function UserTripDialog({ user }: { user: User}) {
                 <MapPin className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <span className="font-medium block">Start</span>
-                  <span className="truncate">{"Southern Sun Cape Sun"}</span>
+                  <span className="truncate">{JSON.parse(swapQuotes(trip.startLocation)).name}</span>
                 </div>
               </div>
 
@@ -141,7 +154,7 @@ export function UserTripDialog({ user }: { user: User}) {
                 <Locate className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <span className="font-medium block">Destination</span>
-                  <span className="truncate">{"The Bantry Bay Aparthotel"}</span>
+                  <span className="truncate">{JSON.parse(swapQuotes(trip.endLocation)).name}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -157,7 +170,7 @@ export function UserTripDialog({ user }: { user: User}) {
               <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                   <CircleAlert className={`w-5 h-5 ${convertRiskToText(trip.riskScore) === "High" ? "text-red-500" : convertRiskToText(trip.riskScore) === "Medium" ? "text-yellow-500" : "text-green-500"}`} />
-                  <span className={`${convertRiskToText(trip.riskScore) === "High" ? "text-red-500" : convertRiskToText(trip.riskScore) === "Medium" ? "text-yellow-500" : "text-green-500"} font-bold`}>{convertRiskToText(trip.riskScore)}</span>
+                  <span className={`${convertRiskToText(trip.riskScore) === "High" ? "text-red-500" : convertRiskToText(trip.riskScore) === "Medium" ? "text-yellow-500" : "text-green-500"} font-bold`}>{`${convertRiskToText(trip.riskScore)} (${trip.riskScore})`}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-muted-foreground" />
