@@ -13,10 +13,7 @@
 import osmnx as ox
 import networkx as nx
 import matplotlib.pyplot as plt
-import multiprocessing as mp
-from shapely.geometry import Point
-from shapely.geometry import LineString, Point, box
-import random
+from shapely.geometry import LineString, Point, box, mapping
 
 
 def get_node_id_from_address(address, G):
@@ -148,40 +145,217 @@ def get_shortest_path(G, origin, destination, num_paths=5):
     return shortest_path, {"success": "Shortest path found"}
 
 
-def print_edges(G):
-    for edge in G.edges(data=True):
+def print_edges(G, num_edges=None):
+    """
+    Print the edges of the graph.
+
+    Parameters:
+    - G (networkx.MultiDiGraph): The OSMnx graph
+    - num_edges (int): The number of edges to print
+    """
+    num_edges = num_edges if num_edges is not None else len(G.edges)
+
+    for i, edge in enumerate(G.edges(data=True)):
+        if i == num_edges:
+            break
         print(edge)
 
 
-def main():
-    source = (-26.077702, 27.950062)  # home
-    destination = (-26.081334, 27.935728)  # Curro
-    destination2 = (-25.770344, 27.852952)  # Ortho
+def get_polyline_from_path(G, path):
+    """
+    Create a polyline (LineString) from an OSMnx path.
+    
+    Parameters:
+    G (networkx.MultiDiGraph): The OSMnx graph
+    path (list): List of node IDs representing the path
+    
+    Returns:
+    shapely.geometry.LineString: The polyline representing the path
+    """
+    # Get the coordinates for each node in the path
+    coords = []
+    for node in path:
+        # Get the node's data
+        node_data = G.nodes[node]
+        # Append the (longitude, latitude) coordinates
+        coords.append((node_data['y'], node_data['x']))
 
-    G = get_graph_between_points(source=source, destination=destination)
-    # G = get_graph_between_points(
-    #     source=source, destination=destination2, graph=G)
+    # Create a LineString from the coordinates
+    polyline = LineString(coords)
 
-    # Print graph information
-    print(f"Final graph - Nodes: {len(G.nodes)}, Edges: {len(G.edges)}")
-    print(
-        f"Graph bounds: {ox.utils_geo.bbox_from_point((G.nodes[list(G.nodes)[0]]['y'], G.nodes[list(G.nodes)[0]]['x']), dist=1000)}")
+    return polyline
 
-    # Get the shortest path between the source and destination
-    shortest_path, status = get_shortest_path(G, source, destination)
 
-    print_edges(G)
+def encode_polyline(polyline, precision=5):
+    """
+    Encode a polyline into the Google Polyline Format.
+    
+    Parameters:
+    polyline (shapely.geometry.LineString): The polyline to encode
+    precision (int): The precision of the encoding (default is 5)
+    
+    Returns:
+    str: The encoded polyline string
+    """
+    def encode_number(num):
+        num = int(round(num * 10 ** precision))
+        num = num << 1 if num >= 0 else ~(num << 1)
+        chunks = []
+        while num >= 0x20:
+            chunks.append((0x20 | (num & 0x1f)) + 63)
+            num >>= 5
+        chunks.append(num + 63)
+        return ''.join(chr(c) for c in chunks)
 
+    coords = list(polyline.coords)
+    result = []
+    prev_lat, prev_lng = 0, 0
+    for lat, lng in coords:
+        result.append(encode_number(lat - prev_lat))
+        result.append(encode_number(lng - prev_lng))
+        prev_lat, prev_lng = lat, lng
+    return ''.join(result)
+
+
+def polyline_to_geojson(polyline):
+    """
+    Convert a Shapely LineString to GeoJSON LineString format.
+    
+    Parameters:
+    polyline (shapely.geometry.LineString): The polyline to convert
+    
+    Returns:
+    dict: GeoJSON representation of the LineString
+    """
+    coordinates = list(polyline.coords)
+    for i, coord in enumerate(coordinates):
+        coordinates[i] = [coord[0], coord[1]]
+
+    geojson = {
+        "type": "Feature",
+        "geometry": {
+            "type": "LineString",
+            "coordinates": coordinates
+        },
+        "properties": {}
+    }
+
+    return geojson
+
+
+def get_path_osm_ids(G, path):
+    """
+    Get the OSM IDs for each leg of the path.
+    
+    Parameters:
+    G (networkx.MultiDiGraph): The OSMnx graph
+    path (list): List of node IDs representing the path
+    
+    Returns:
+    list: List of OSM IDs for each leg of the path
+    """
+    leg_osm_ids = []
+
+    # Iterate through the path, looking at pairs of nodes
+    for i in range(len(path) - 1):
+        start_node = path[i]
+        end_node = path[i + 1]
+
+        # Get the edge data between these two nodes
+        edge_data = G.get_edge_data(start_node, end_node)
+
+        # There might be multiple edges between two nodes, so we need to handle that
+        if edge_data is not None:
+            # If there's only one edge, it won't be in a list
+            if 0 in edge_data:
+                osm_id = edge_data[0].get('osmid')
+            else:
+                # If there are multiple edges, choose the first one (you might want to modify this logic)
+                osm_id = next(iter(edge_data.values())).get('osmid')
+
+            # The osmid might be a list, in which case we'll take the first element
+            if isinstance(osm_id, list):
+                osm_id = osm_id[0]
+
+            leg_osm_ids.append(osm_id)
+        else:
+            # If there's no edge data, append None or some placeholder
+            leg_osm_ids.append(None)
+
+    return leg_osm_ids
+
+
+def get_edge_by_osm_id(G, osm_id):
+    """
+    Get the edge data for a given OSM ID.
+    
+    Parameters:
+    G (networkx.MultiDiGraph): The OSMnx graph
+    osm_id (int): The OSM ID of the edge
+    
+    Returns:
+    dict: The edge data
+    """
+    for u, v, data in G.edges(data=True):
+        if data.get('osmid') == osm_id:
+            return (u, v, data)
+
+    return None
+
+
+def add_data_to_edge_by_osm_id(G, osm_id, data):
+    """
+    Add data to an edge by its OSM ID.
+    
+    Parameters:
+    G (networkx.MultiDiGraph): The OSMnx graph
+    osm_id (int): The OSM ID of the edge
+    data (dict): The data to add to the edge
+    """
+    for u, v, edge_data in G.edges(data=True):
+        if edge_data.get('osmid') == osm_id:
+            edge_data.update(data)
+            break
+
+
+def example_flow():
+    # 1. start by defining the source and destination points as a tuple of (latitude, longitude)
+    source = (-26.077702, 27.950062)
+    destination = (-26.081334, 27.935728)
+
+    # 2. create a graph encompassing the source and destination points
+    G = get_graph_between_points(
+        source=source, destination=destination, graph=None)
+
+    # 2.1. (optional) add a new point to the graph
+    # new_destination = (-25.770344, 27.852952)
+    # if you provide a graph, the new point will be added to the existing graph if it's not already there
+    # G = get_graph_between_points(source=source, destination=new_destination, graph=G)
+
+    # 3. get the shortest path between the source and destination
+    shortest_paths, status = get_shortest_path(
+        G, source, destination, num_paths=30)
+
+    # 4. check the status of the operation
     if status.get("error"):
-        print(status)
-        return
+        # handle the error
+        pass
     elif status.get("success"):
-        print("Shortest path found")
-        # plot the graph with the shortest path highlighted
-        fig, ax = ox.plot_graph_routes(
-            G, list(shortest_path), route_colors="y", route_linewidth=4, node_size=0)
-        plt.show()
+        # 5. get the paths
+        paths = list(shortest_paths)
+        # 6. get the osm ids for each leg of the paths
+        path_osm_ids = [get_path_osm_ids(G, path) for path in paths]
 
+        # 7. do something with the paths (example add crime and print)
+        path_0_osm_ids = path_osm_ids[0]
+        first_leg_osm_id = path_0_osm_ids[0]
+        add_data_to_edge_by_osm_id(G, first_leg_osm_id, {"crime": "high"})
+        edge = get_edge_by_osm_id(G, first_leg_osm_id)
+        print("First leg of the path:", edge)
+
+
+def main():
+    example_flow()
 
 if __name__ == "__main__":
     main()
