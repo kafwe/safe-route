@@ -18,23 +18,35 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 const chartData = [
-    { month: "January", desktop: 186 },
-    { month: "February", desktop: 305 },
-    { month: "March", desktop: 237 },
-    { month: "April", desktop: 73 },
-    { month: "May", desktop: 209 },
-    { month: "June", desktop: 214 },
-    { month: "July", desktop: 0 },
-    { month: "August", desktop: 0 },
-    { month: "September", desktop: 0 },
-    { month: "October", desktop: 0 },
-    { month: "November", desktop: 0 },
-    { month: "December", desktop: 0 },
+    {
+        "month": "January",
+        "desktop": 68
+    },
+    {
+        "month": "February",
+        "desktop": 72
+    },
+    {
+        "month": "March",
+        "desktop": 73
+    },
+    {
+        "month": "April",
+        "desktop": 40
+    },
+    {
+        "month": "May",
+        "desktop": 61
+    },
+    {
+        "month": "June",
+        "desktop": 81
+    },
 ]
 
 const chartConfig = {
   desktop: {
-    label: "Desktop",
+    label: "Trips",
     color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig

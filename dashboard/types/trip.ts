@@ -7,6 +7,7 @@ export interface Location {
 
 export interface Trip {
   tripId: string
+  userId: string
   startLocation: Location
   endLocation: Location
   startTime: string

@@ -47,12 +47,6 @@ export function SiteHeader() {
           >
             Users
           </Link>
-          <Link
-            href="/risk"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Risk
-          </Link>
         </nav>
         <Sheet>
           <SheetTrigger asChild>
@@ -68,32 +62,20 @@ export function SiteHeader() {
           <SheetContent side="left">
             <nav className="grid gap-6 text-lg font-medium">
               <Link
-                href="#"
+                href="/"
                 className="flex items-center gap-2 text-lg font-semibold"
               >
                 <Package2 className="h-6 w-6" />
                 <span className="sr-only">Dashboard</span>
               </Link>
-              <Link href="#" className="hover:text-foreground">
+              <Link href="/" className="hover:text-foreground">
                 Overview
               </Link>
               <Link
-                href="#"
+                href="/users"
                 className="text-muted-foreground hover:text-foreground"
               >
                 Users
-              </Link>
-              <Link
-                href="#"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Trips
-              </Link>
-              <Link
-                href="#"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Risk
               </Link>
             </nav>
           </SheetContent>
@@ -102,17 +84,6 @@ export function SiteHeader() {
           <div className="ml-auto flex-1 sm:flex-initial">
           </div>
           <ThemeToggle />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="rounded-full">
-                <span className="sr-only">Toggle user menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuItem>Logout</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </header>
   )
