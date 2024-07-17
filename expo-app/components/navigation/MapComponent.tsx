@@ -17,7 +17,7 @@ interface MapComponentProps {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyC70Vnp5i7-5G8nJ0NHS95ITe9PbkIGc_Y";
+const GOOGLE_MAPS_API_KEY = "AIzaSyDPzWN903NrP9Yac5m-Th9SJ3z847pkAbU";
 
 const MapComponent: React.FC<MapComponentProps> = ({
   userLoc = { latitude: -33.918861, longitude: 18.4233 }, // Cape Town, South Africa

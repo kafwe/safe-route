@@ -39,11 +39,7 @@ const SearchPage: React.FC = () => {
   const { colors } = useTheme();
   const navigation = useNavigation(); // Use the navigation hook
 
-  const buttonData: ButtonData[] = [
-    { id: "1", title: "Gas", icon: "gas-pump" },
-    { id: "2", title: "Food", icon: "utensils" },
-    { id: "3", title: "Parking", icon: "parking" },
-  ];
+
 
   useEffect(() => {
     (async () => {
@@ -61,7 +57,7 @@ const SearchPage: React.FC = () => {
   const getCoordinatesFromAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
     try {
       const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`
+        https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}
       );
 
       if (response.data.status === 'OK') {
@@ -94,7 +90,7 @@ const SearchPage: React.FC = () => {
     try {
       // Fetch route from Google Maps Directions API
       const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/directions/json?origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${destinationCoords.lat},${destinationCoords.lng}&key=${GOOGLE_MAPS_API_KEY}`
+        https://maps.googleapis.com/maps/api/directions/json?origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${destinationCoords.lat},${destinationCoords.lng}&key=${GOOGLE_MAPS_API_KEY}
       );
 
       if (response.data.status === 'OK') {
@@ -120,7 +116,7 @@ const SearchPage: React.FC = () => {
 
   const handleSearchSubmit = () => {
     if (search.trim()) {
-      console.log(`Search submitted for: ${search}`);
+      console.log(Search submitted for: ${search});
       fetchRoutes(search);
     } else {
       console.log("Search query is empty.");
@@ -134,7 +130,7 @@ const SearchPage: React.FC = () => {
     }
     try {
       const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${input}&location=${CAPE_TOWN_LOCATION.latitude},${CAPE_TOWN_LOCATION.longitude}&radius=${RADIUS}&key=${GOOGLE_MAPS_API_KEY}`
+        https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${input}&location=${CAPE_TOWN_LOCATION.latitude},${CAPE_TOWN_LOCATION.longitude}&radius=${RADIUS}&key=${GOOGLE_MAPS_API_KEY}
       );
       if (response.data.status === 'OK') {
         setPredictions(response.data.predictions);
