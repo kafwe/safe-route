@@ -13,7 +13,18 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification"
+        ],
+        "NSLocationWhenInUseUsageDescription": "This app requires access to your location when open.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app requires access to your location even when closed.",
+        "NSLocationAlwaysUsageDescription":  "This app requires access to your location when open.",
+        "deploymentTarget": "14"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,13 +32,27 @@
         "backgroundColor": "#ffffff"
       }
     },
+     "extra": {
+      "googleMapsApiKey": "AIzaSyDPzWN903NrP9Yac5m-Th9SJ3z847pkAbU"
+    },
+    
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
+          "locationAlwaysPermission": "Allow $(PRODUCT_NAME) to use your location.",
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
