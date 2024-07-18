@@ -24,6 +24,8 @@ import "react-native-get-random-values";
 import {v4 as uuidv4} from 'uuid';
 import { router } from "expo-router";
 
+// Declare the API key directly
+const GOOGLE_PLACES_API_KEY = "AIzaSyCuosz_XkI9j-EPgWHnuXDAo1mEMYDEN_k";
 
 export default function Report() {
 	const [location, setLocation] = useState({
@@ -46,7 +48,7 @@ export default function Report() {
 	const [address, setAddress] = useState(null);
 	const getAddressFromCoordinates = async (latitude: number, longitude: number) => {
 		try {
-		  const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY}`);
+		  const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_PLACES_API_KEY}`);
 		  const data = await response.json();
 	
 		  if (data.results && data.results.length > 0) {
@@ -148,7 +150,7 @@ export default function Report() {
 						});
 					}}
 					query={{
-						key: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY,
+						key: GOOGLE_PLACES_API_KEY,
 						language: "en",
 						components: "country:za",
 					}}

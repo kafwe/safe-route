@@ -209,10 +209,13 @@ const MainPage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <IconButton icon="menu" onPress={() => {}} />
-        <Text style={styles.headerText}>{destinationName || "Select Destination"}</Text>
-      </View>
+     <View style={styles.header}>
+  <IconButton 
+    icon="menu" 
+    onPress={() => navigation.navigate('SearchPage' as never)} 
+  />
+  <Text style={styles.headerText}>{destinationName || "Select Destination"}</Text>
+</View>
 
       <View style={styles.segmentedButtons}>
         {[
@@ -294,7 +297,7 @@ const MainPage = () => {
           icon="alert-octagon"
           iconColor={colors.error}
           size={40}
-          onPress={() => navigation.navigate('ReportPage' as never)}
+          onPress={() => navigation.navigate('report' as never)}
         />
       </View>
     </SafeAreaView>

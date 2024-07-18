@@ -69,6 +69,7 @@ export default function RootLayout() {
               name="report"
               options={{ title: "Report an incident" }}
             />
+           
             {/* <Stack.Screen
               name="account"
               options={{ title: "Account" }}
