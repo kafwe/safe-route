@@ -30,16 +30,20 @@ const CAPE_TOWN_LOCATION = {
 
 const RADIUS = 50000; // 50 kilometers
 
+const buttonData: ButtonData[] = [
+  { id: '1', title: 'Home', icon: 'home' },
+  { id: '2', title: 'Work', icon: 'briefcase' },
+  { id: '3', title: 'School', icon: 'school' }
+];
+
 const SearchPage: React.FC = () => {
   const [search, setSearch] = useState<string>("");
-  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const [predictions, setPredictions] = useState<any[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { setRoutes, setDestination, routes, selectedRoute, setSelectedRoute } = useContext(NavigationContext) || {};
   const { colors } = useTheme();
   const navigation = useNavigation(); // Use the navigation hook
-
-
 
   useEffect(() => {
     (async () => {
@@ -50,15 +54,13 @@ const SearchPage: React.FC = () => {
       }
 
       let location = await Location.getCurrentPositionAsync({});
-      setCurrentLocation({latitude: location.coords.latitude, longitude: location.coords.longitude});
+      setCurrentLocation({ latitude: location.coords.latitude, longitude: location.coords.longitude });
     })();
   }, []);
 
   const getCoordinatesFromAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
     try {
-      const response = await axios.get(
-        https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}
-      );
+      const response = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`);
 
       if (response.data.status === 'OK') {
         const location = response.data.results[0].geometry.location;
@@ -90,7 +92,7 @@ const SearchPage: React.FC = () => {
     try {
       // Fetch route from Google Maps Directions API
       const response = await axios.get(
-        https://maps.googleapis.com/maps/api/directions/json?origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${destinationCoords.lat},${destinationCoords.lng}&key=${GOOGLE_MAPS_API_KEY}
+        `https://maps.googleapis.com/maps/api/directions/json?origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${destinationCoords.lat},${destinationCoords.lng}&key=${GOOGLE_MAPS_API_KEY}`
       );
 
       if (response.data.status === 'OK') {
@@ -116,7 +118,7 @@ const SearchPage: React.FC = () => {
 
   const handleSearchSubmit = () => {
     if (search.trim()) {
-      console.log(Search submitted for: ${search});
+      console.log(`Search submitted for: ${search}`);
       fetchRoutes(search);
     } else {
       console.log("Search query is empty.");
@@ -130,7 +132,7 @@ const SearchPage: React.FC = () => {
     }
     try {
       const response = await axios.get(
-        https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${input}&location=${CAPE_TOWN_LOCATION.latitude},${CAPE_TOWN_LOCATION.longitude}&radius=${RADIUS}&key=${GOOGLE_MAPS_API_KEY}
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${input}&location=${CAPE_TOWN_LOCATION.latitude},${CAPE_TOWN_LOCATION.longitude}&radius=${RADIUS}&key=${GOOGLE_MAPS_API_KEY}`
       );
       if (response.data.status === 'OK') {
         setPredictions(response.data.predictions);
