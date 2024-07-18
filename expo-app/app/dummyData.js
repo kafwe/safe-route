@@ -45,5 +45,4 @@ const dummyData = [
             risk_score: 7
         }
     },
-    
-   
+]
