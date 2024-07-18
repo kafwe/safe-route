@@ -14,6 +14,7 @@ import osmnx as ox
 import networkx as nx
 import matplotlib.pyplot as plt
 from shapely.geometry import LineString, Point, box, mapping
+import urllib.parse
 
 
 def get_node_id_from_address(address, G):
@@ -318,10 +319,58 @@ def add_data_to_edge_by_osm_id(G, osm_id, data):
             break
 
 
+
+def create_google_maps_deeplink(origin, destination, formatted_waypoints=None, travel_mode="driving", avoid=None):
+    base_url = "https://www.google.com/maps/dir/"
+    params = {
+        "api": 1,
+        "origin": origin,
+        "destination": destination,
+        "travelmode": travel_mode,
+        "dir_action": "navigate"
+    }
+    
+    if formatted_waypoints:
+        # Join waypoints with pipe character, but don't URL-encode the commas in coordinates
+        params["waypoints"] = formatted_waypoints
+    
+    if avoid:
+        params["avoid"] = ",".join(avoid)
+    
+    # Use safe parameter to preserve commas in coordinates and pipes between waypoints
+    query_string = urllib.parse.urlencode(params, safe=",|")
+    deeplink = f"{base_url}?{query_string}"
+    
+    return deeplink
+
+
+def format_waypoints_for_google_maps_deeplink(G, path):
+    """
+    Format the waypoints for a Google Maps deep link.
+
+    Parameters:
+    - path (list): The path to format
+
+    Returns:
+    - str: The formatted waypoints
+    """
+
+    waypoints = []
+    for i, node in enumerate(path):
+        # Get the node's data
+        node_data = G.nodes[node]
+        # Append the (longitude, latitude) coordinates
+        waypoints.append(f"{node_data['y']},{node_data['x']}")
+
+    return "|".join(waypoints)
+
+
+
 def example_flow():
     # 1. start by defining the source and destination points as a tuple of (latitude, longitude)
     source = (-26.077702, 27.950062)
     destination = (-26.081334, 27.935728)
+    destination = (-25.756415, 28.229561) # pretoria
 
     # 2. create a graph encompassing the source and destination points
     G = get_graph_between_points(
@@ -334,7 +383,7 @@ def example_flow():
 
     # 3. get the shortest path between the source and destination
     shortest_paths, status = get_shortest_path(
-        G, source, destination, num_paths=30)
+        G, source, destination, num_paths=1)
 
     # 4. check the status of the operation
     if status.get("error"):
@@ -352,6 +401,18 @@ def example_flow():
         add_data_to_edge_by_osm_id(G, first_leg_osm_id, {"crime": "high"})
         edge = get_edge_by_osm_id(G, first_leg_osm_id)
         print("First leg of the path:", edge)
+
+        # 8. get polylines for a path
+        polyline = get_polyline_from_path(G, paths[0])
+        encoded_polyline = encode_polyline(polyline)
+        print("Encoded polyline:", encoded_polyline)
+
+        # 9. create a Google Maps deep link
+        waypoints = format_waypoints_for_google_maps_deeplink(G, paths[0])
+        deeplink = create_google_maps_deeplink(
+            origin=f"{source[0]},{source[1]}", destination=f"{destination[0]},{destination[1]}", formatted_waypoints=waypoints)
+        print("Google Maps deep link:", deeplink)
+
 
 
 def main():
