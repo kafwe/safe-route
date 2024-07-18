@@ -1,22 +1,25 @@
-FROM continuumio/miniconda3
+# Use the osmnx base image
+FROM gboeing/osmnx
 
-# Copy the environment.yml file into the container
-COPY environment.yml .
-
-# Create the conda environment using the environment.yml file
-RUN conda env create -f environment.yml
-
-# Activate the conda environment
-SHELL ["conda", "run", "-n", "ox", "/bin/bash", "-c"]
-
-# Create a directory for the app
+# Use root user to create the app directory
+USER root
 RUN mkdir /app
 
-# Copy only the app.py file
-COPY app.py /app/
+# Switch back to the original user
+USER ox
 
 # Set the working directory
 WORKDIR /app
 
-# Set the command to run your Flask application
-CMD ["python", "app.py"]
+# Install pip in the conda environment and then install Flask and Flask-CORS
+RUN conda install -c conda-forge pip && \
+    conda run -n ox pip install flask flask-cors
+
+# Copy the app.py file into the container
+COPY app.py .
+
+# Expose the port the app runs on
+EXPOSE 8080
+
+# Ensure the environment is activated when the container starts
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "ox", "python", "app.py"]
