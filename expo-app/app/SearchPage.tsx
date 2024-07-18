@@ -1,13 +1,13 @@
 import React, { useContext, useState, useEffect } from "react";
 import { View, StyleSheet, FlatList, Text, Alert, ScrollView, TouchableOpacity, SafeAreaView } from "react-native";
-import { TextInput, Button, Card, useTheme, IconButton } from "react-native-paper";
+import { TextInput, Button, useTheme, IconButton } from "react-native-paper";
 import axios from "axios";
 import { NavigationContext } from "@/components/navigation/NavigationContext";
 import * as Location from 'expo-location';
 import RouteDetailsModal from '@/components/navigation/RouteRecommendations';
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
+import Geocoder from "react-native-geocoding"; 
 interface Route {
   duration: string;
   distance: string;
@@ -15,7 +15,7 @@ interface Route {
   polyline: string;
 }
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyC70Vnp5i7-5G8nJ0NHS95ITe9PbkIGc_Y';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCuosz_XkI9j-EPgWHnuXDAo1mEMYDEN_k';
 
 const SearchPage: React.FC = () => {
   const [origin, setOrigin] = useState<string>("Current Location");
@@ -69,23 +69,79 @@ const SearchPage: React.FC = () => {
     setPredictions([]);
   };
 
-  const handleSearch = () => {
-    if (destination.trim()) {
-      // Implement your route fetching logic here
-      // For now, we'll just set a dummy route
-      const dummyRoute = {
-        duration: "30 mins",
-        distance: "15 km",
-        summary: "via Main Road",
-        polyline: "encoded_polyline_string",
-      };
-      setRoutes && setRoutes([dummyRoute]);
-      setContextDestination && setContextDestination(destination);
-      navigation.navigate('index' as never);
-    } else {
-      Alert.alert("Error", "Please enter a destination");
+const handleSearch = async () => {
+  if (destination.trim()) {
+    if (!currentLocation) {
+      Alert.alert("Error", "Current location not available. Please try again.");
+      return;
     }
-  };
+
+    try {
+      // Convert the destination to coordinates using Geocoder
+      const response = await Geocoder.from(destination);
+      const destinationCoords = response.results[0].geometry.location;
+
+      // Prepare request body for the custom API
+      const body = {
+        api_key: "AIzaSyCuosz_XkI9j-EPgWHnuXDAo1mEMYDEN_k",
+        start_coords: [currentLocation.latitude, currentLocation.longitude],
+        end_coords: [destinationCoords.lat, destinationCoords.lng],
+        bucket_name: "gcf-sources-1036555436109-europe-west2",
+        csv_file_path: "finaldata.csv",
+        crime_weight: 2, // Different weight
+        load_shedding_weight: 0 // Different weight
+      };
+
+      console.log("Request Body:", JSON.stringify(body));
+
+      // Call the custom API
+      const apiResponse = await axios.post(
+        'https://europe-west2-gradhack-2024-the-cookout.cloudfunctions.net/my_route_function',
+        body,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log("API Response:", JSON.stringify(apiResponse.data));
+
+      // Parse the API response
+      const safestRoute = apiResponse.data.safest_route;
+      const shortestRoute = apiResponse.data.shortest_route;
+
+      // Create routes array
+      const routes = [
+        {
+          duration: safestRoute.duration || "unknown",
+          distance: safestRoute.distance,
+          summary: "Safest Route",
+          polyline: safestRoute.polyline,
+        },
+        {
+          duration: shortestRoute.duration || "unknown",
+          distance: shortestRoute.distance,
+          summary: "Shortest Route",
+          polyline: shortestRoute.polyline,
+        },
+      ];
+
+      setRoutes(routes);
+      setContextDestination(destination);
+      navigation.navigate('index' as never);
+
+    } catch (error) {
+      console.error("Error fetching route data:", error);
+      Alert.alert("Error", "Failed to fetch route data. Please try again.");
+    }
+  } else {
+    Alert.alert("Error", "Please enter a destination");
+  }
+};
+
+
+
 
   const renderPrediction = ({ item }: { item: any }) => (
     <TouchableOpacity onPress={() => handlePredictionSelect(item)}>

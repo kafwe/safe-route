@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, StyleSheet, Text, SafeAreaView, ScrollView } from "react-native";
+import { View, StyleSheet, Text, SafeAreaView, ScrollView, Alert } from "react-native";
 import { useNavigation } from "expo-router";
-import { IconButton, Button, useTheme, ActivityIndicator, Divider, Card } from "react-native-paper";
+import { IconButton, Button, useTheme, ActivityIndicator, Divider } from "react-native-paper";
 import MapView, { Polyline } from 'react-native-maps';
 import Geocoder from 'react-native-geocoding';
 import * as Location from 'expo-location';
 import { NavigationContext } from "@/components/navigation/NavigationContext";
-import { getGoogleMapsApiKey } from "@/utils/getGoogleMapsApiKey";
 import { useToast } from "react-native-paper-toast";
 import axios from 'axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -34,33 +33,14 @@ const MainPage = () => {
 
   useEffect(() => {
     (async () => {
-      try {
-        const apiKey = await getGoogleMapsApiKey();
-        Geocoder.init(apiKey);
-        
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          toaster.show({
-            message: "Location permission denied",
-            type: "error",
-          });
-          return;
-        }
-
-        let location = await Location.getCurrentPositionAsync({});
-        setCurrentLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-        setRegion({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
-      } catch (error) {
-        console.warn(error);
+      Geocoder.init("AIzaSyCuosz_XkI9j-EPgWHnuXDAo1mEMYDEN_k"); // Initialize with your Google Maps API key
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert("Error", "Permission to access location was denied");
+        return;
       }
+      let location = await Location.getCurrentPositionAsync({});
+      setCurrentLocation({ latitude: location.coords.latitude, longitude: location.coords.longitude });
     })();
   }, []);
 
@@ -72,69 +52,117 @@ const MainPage = () => {
     }
   }, [destination]);
 
-  const fetchRoute = async (origin, destination) => {
-    if (!origin || !destination) return;
-    try {
-      setLoading(true);
-      const response = await axios.get(`https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination}&key=${await getGoogleMapsApiKey()}`);
-      if (response.data.status === 'OK') {
-        const route = response.data.routes[0];
-        const routeData = {
-          duration: route.legs[0].duration.text,
-          distance: route.legs[0].distance.text,
-          polyline: route.overview_polyline.points,
-          arrivalTime: new Date(Date.now() + route.legs[0].duration.value * 1000).toLocaleTimeString(),
-          color: 'Green'  // or 'Blue' or 'Purple' based on your logic
-        };
-        setRoutes([routeData]);
-        setDestinationCoords({
-          latitude: route.legs[0].end_location.lat,
-          longitude: route.legs[0].end_location.lng,
-        });
+const fetchRoute = async (origin, destination) => {
+  if (!origin || !destination) return;
+  try {
+    setLoading(true);
+
+    // Convert the destination to coordinates using Geocoder
+    const response = await Geocoder.from(destination);
+    const destinationCoords = response.results[0].geometry.location;
+
+    // Prepare request body for the custom API
+    const body = {
+      api_key: "AIzaSyCuosz_XkI9j-EPgWHnuXDAo1mEMYDEN_k",
+      start_coords: [origin.latitude, origin.longitude],
+      end_coords: [destinationCoords.lat, destinationCoords.lng],
+      bucket_name: "gcf-sources-1036555436109-europe-west2",
+      csv_file_path: "finaldata.csv",
+      crime_weight: 1,
+      load_shedding_weight: 1
+    };
+
+    // Call the custom API
+    const apiResponse = await axios.post(
+      'https://europe-west2-gradhack-2024-the-cookout.cloudfunctions.net/my_route_function',
+      body,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
       }
-    } catch (error) {
-      console.error("Error fetching route data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    );
+
+    // Log the API response for debugging
+    console.log("API Response:", apiResponse.data);
+
+    // Create routes array
+    const routes = [
+      {
+        duration: "N/A", // API doesn't provide duration
+        distance: apiResponse.data.safest_route.distance,
+        summary: "Safest Route",
+        polyline: apiResponse.data.safest_route.polyline,
+        color: 'Green',
+        dangerScore: apiResponse.data.safest_route.danger_score,
+        crimeNumber: apiResponse.data.safest_route.total_crime_number,
+        loadSheddingCount: apiResponse.data.safest_route.total_load_shedding_count,
+      },
+      {
+        duration: "N/A", // API doesn't provide duration
+        distance: apiResponse.data.shortest_route.distance,
+        summary: "Shortest Route",
+        polyline: apiResponse.data.shortest_route.polyline,
+        color: 'Blue',
+        dangerScore: "N/A", // Not provided for shortest route
+        crimeNumber: apiResponse.data.shortest_route.total_crime_number,
+        loadSheddingCount: apiResponse.data.shortest_route.total_load_shedding_count,
+      }
+    ];
+
+    setRoutes(routes);
+    setDestinationCoords({
+      latitude: destinationCoords.lat,
+      longitude: destinationCoords.lng,
+    });
+
+  } catch (error) {
+    console.error("Error fetching route data:", error);
+    Alert.alert("Error", "Failed to fetch route data. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSearchPress = () => {
     navigation.navigate('SearchPage' as never);
   };
 
-  const decodePolyline = (encoded) => {
-    let points = [];
-    let index = 0, len = encoded.length;
-    let lat = 0, lng = 0;
+ const decodePolyline = (encoded) => {
+  if (!encoded) return [];
+  
+  let points = [];
+  let index = 0, len = encoded.length;
+  let lat = 0, lng = 0;
 
-    while (index < len) {
-      let b, shift = 0, result = 0;
-      do {
-        b = encoded.charAt(index++).charCodeAt(0) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
+  while (index < len) {
+    let b, shift = 0, result = 0;
+    do {
+      b = encoded.charAt(index++).charCodeAt(0) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    lat += dlat;
 
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.charAt(index++).charCodeAt(0) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charAt(index++).charCodeAt(0) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    lng += dlng;
 
-      points.push({
-        latitude: lat / 1E5,
-        longitude: lng / 1E5
-      });
-    }
-    return points;
-  };
+    points.push({
+      latitude: lat / 1E5,
+      longitude: lng / 1E5
+    });
+  }
+  return points;
+};
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -143,51 +171,41 @@ const MainPage = () => {
         <Text style={styles.headerText}>{destinationName || "Select Destination"}</Text>
       </View>
 
-    <View style={styles.segmentedButtons}>
-  {[
-    { mode: 'walk', icon: 'walk', label: 'Walking' },
-    { mode: 'train', icon: 'train', label: 'Transit' },
-    { mode: 'drive', icon: 'car', label: 'Driving' }
-  ].map((option) => (
-    <Button
-      key={option.mode}
-      mode={mode === option.mode ? "contained" : "outlined"}
-      onPress={() => setMode(option.mode)}
-      icon={({ size, color }) => (
-        <MaterialCommunityIcons name={option.icon} size={size} color={color} />
-      )}
-      style={styles.segmentButton}
-    >
-      {option.label}
-    </Button>
-  ))}
-</View>
+      <View style={styles.segmentedButtons}>
+        {[
+          { mode: 'walk', icon: 'walk', label: 'Walking' },
+          { mode: 'train', icon: 'train', label: 'Transit' },
+          { mode: 'drive', icon: 'car', label: 'Driving' }
+        ].map((option) => (
+          <Button
+            key={option.mode}
+            mode={mode === option.mode ? "contained" : "outlined"}
+            onPress={() => setMode(option.mode)}
+            icon={({ size, color }) => (
+              <MaterialCommunityIcons name={option.icon} size={size} color={color} />
+            )}
+            style={styles.segmentButton}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </View>
 
       {searchPerformed && (
         <View style={styles.routesContainer}>
           <ScrollView horizontal contentContainerStyle={styles.routesScrollView}>
-            {routes && routes.map((route, index) => (
-              <React.Fragment key={index}>
-                <View style={[styles.routeBox, styles[`routeBox${route.color}`]]}>
-                  <Text style={styles.routeTime}>{route.duration}</Text>
-                  <Text style={styles.routeDistance}>{route.distance}</Text>
-                  <Text style={styles.routeArrival}>Arrive at {route.arrivalTime}</Text>
-                </View>
-                 <View style={[styles.routeBox, styles[`routeBox${route.color}`]]}>
-                  <Text style={styles.routeTime}>{route.duration}</Text>
-                  <Text style={styles.routeDistance}>{route.distance}</Text>
-                  <Text style={styles.routeArrival}>Arrive at {route.arrivalTime}</Text>
-                </View>
-                 <View style={[styles.routeBox, styles[`routeBox${route.color}`]]}>
-                  <Text style={styles.routeTime}>{route.duration}</Text>
-                  <Text style={styles.routeDistance}>{route.distance}</Text>
-                  <Text style={styles.routeArrival}>Arrive at {route.arrivalTime}</Text>
-                </View>
-                {index < routes.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
+           {routes && routes.map((route, index) => (
+  <View key={index} style={[styles.routeBox, styles[`routeBox${route.color}`]]}>
+    <Text style={styles.routeTime}>{route.summary}</Text>
+    <Text style={styles.routeDistance}>{route.distance} km</Text>
+    {route.dangerScore !== "N/A" && (
+      <Text style={styles.routeInfo}>Danger Score: {route.dangerScore}</Text>
+    )}
+    <Text style={styles.routeInfo}>Crimes: {route.crimeNumber}</Text>
+    <Text style={styles.routeInfo}>Load Shedding: {route.loadSheddingCount}</Text>
+  </View>
+))}
           </ScrollView>
-          
         </View>
       )}
 
@@ -197,12 +215,14 @@ const MainPage = () => {
         onRegionChangeComplete={setRegion}
       >
         {routes && routes.map((route, index) => (
-          <Polyline
-            key={index}
-            coordinates={decodePolyline(route.polyline)}
-            strokeWidth={3}
-            strokeColor="blue"  // Adjust color as needed
-          />
+          route.polyline ? (
+            <Polyline
+              key={index}
+              coordinates={decodePolyline(route.polyline)}
+              strokeWidth={3}
+
+            />
+          ) : null
         ))}
       </MapView>
 
