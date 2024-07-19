@@ -1,19 +1,13 @@
 import React, { useContext, useState, useEffect } from "react";
-import { View, StyleSheet, FlatList, Pressable, Text, Alert, ScrollView, TouchableOpacity } from "react-native";
-import { Icon } from "react-native-elements";
-import { TextInput, Button, Card, useTheme } from "react-native-paper";
+import { View, StyleSheet, FlatList, Text, Alert, ScrollView, TouchableOpacity, SafeAreaView } from "react-native";
+import { TextInput, Button, useTheme, IconButton } from "react-native-paper";
 import axios from "axios";
 import { NavigationContext } from "@/components/navigation/NavigationContext";
 import * as Location from 'expo-location';
-import RouteDetailsModal from '@/components/navigation/RouteRecommendations'; // Adjust the import path as needed
-import { useNavigation } from "@react-navigation/native"; // Import the navigation hook
-
-interface ButtonData {
-  id: string;
-  title: string;
-  icon: string;
-}
-
+import RouteDetailsModal from '@/components/navigation/RouteRecommendations';
+import { useNavigation } from "@react-navigation/native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Geocoder from "react-native-geocoding"; 
 interface Route {
   duration: string;
   distance: string;
@@ -21,111 +15,30 @@ interface Route {
   polyline: string;
 }
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyC70Vnp5i7-5G8nJ0NHS95ITe9PbkIGc_Y';
-
-const CAPE_TOWN_LOCATION = {
-  latitude: -33.918861,
-  longitude: 18.4233,
-};
-
-const RADIUS = 50000; // 50 kilometers
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCuosz_XkI9j-EPgWHnuXDAo1mEMYDEN_k';
 
 const SearchPage: React.FC = () => {
-  const [search, setSearch] = useState<string>("");
-  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [origin, setOrigin] = useState<string>("Current Location");
+  const [destination, setDestination] = useState<string>("");
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const [predictions, setPredictions] = useState<any[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const { setRoutes, setDestination, routes, selectedRoute, setSelectedRoute } = useContext(NavigationContext) || {};
+  const { setRoutes, setDestination: setContextDestination, routes, selectedRoute, setSelectedRoute } = useContext(NavigationContext) || {};
   const { colors } = useTheme();
-  const navigation = useNavigation(); // Use the navigation hook
-
-  const buttonData: ButtonData[] = [
-    { id: "1", title: "Gas", icon: "gas-pump" },
-    { id: "2", title: "Food", icon: "utensils" },
-    { id: "3", title: "Parking", icon: "parking" },
-  ];
+  const navigation = useNavigation();
 
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        console.error('Permission to access location was denied');
+        Alert.alert("Error", "Permission to access location was denied");
         return;
       }
 
       let location = await Location.getCurrentPositionAsync({});
-      setCurrentLocation({latitude: location.coords.latitude, longitude: location.coords.longitude});
+      setCurrentLocation({ latitude: location.coords.latitude, longitude: location.coords.longitude });
     })();
   }, []);
-
-  const getCoordinatesFromAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
-    try {
-      const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`
-      );
-
-      if (response.data.status === 'OK') {
-        const location = response.data.results[0].geometry.location;
-        return { lat: location.lat, lng: location.lng };
-      } else {
-        console.error("Geocoding error:", response.data.status, response.data.error_message);
-        return null;
-      }
-    } catch (error) {
-      console.error("Error fetching coordinates from address:", error);
-      return null;
-    }
-  };
-
-  const fetchRoutes = async (destination: string) => {
-    if (!currentLocation) {
-      Alert.alert("Error", "Current location not available. Please try again.");
-      return;
-    }
-
-    // Get destination coordinates from address
-    const destinationCoords = await getCoordinatesFromAddress(destination);
-
-    if (!destinationCoords) {
-      Alert.alert("Error", "Could not fetch coordinates for the destination. Please try again.");
-      return;
-    }
-
-    try {
-      // Fetch route from Google Maps Directions API
-      const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/directions/json?origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${destinationCoords.lat},${destinationCoords.lng}&key=${GOOGLE_MAPS_API_KEY}`
-      );
-
-      if (response.data.status === 'OK') {
-        const route = response.data.routes[0];
-        const routeData = {
-          duration: route.legs[0].duration.text,
-          distance: route.legs[0].distance.text,
-          summary: route.summary,
-          polyline: route.overview_polyline.points,
-        };
-
-        // Update routes in context
-        setRoutes && setRoutes([routeData]);
-        setDestination && setDestination(destination);
-      } else {
-        Alert.alert("Error", "Could not fetch route data. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error fetching route data:", error);
-      Alert.alert("Error", "Could not fetch route data. Please try again.");
-    }
-  };
-
-  const handleSearchSubmit = () => {
-    if (search.trim()) {
-      console.log(`Search submitted for: ${search}`);
-      fetchRoutes(search);
-    } else {
-      console.log("Search query is empty.");
-    }
-  };
 
   const fetchPlacePredictions = async (input: string) => {
     if (!input) {
@@ -134,7 +47,7 @@ const SearchPage: React.FC = () => {
     }
     try {
       const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${input}&location=${CAPE_TOWN_LOCATION.latitude},${CAPE_TOWN_LOCATION.longitude}&radius=${RADIUS}&key=${GOOGLE_MAPS_API_KEY}`
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${input}&key=${GOOGLE_MAPS_API_KEY}`
       );
       if (response.data.status === 'OK') {
         setPredictions(response.data.predictions);
@@ -146,56 +59,89 @@ const SearchPage: React.FC = () => {
     }
   };
 
-  const handleSearchChange = (input: string) => {
-    setSearch(input);
+  const handleDestinationChange = (input: string) => {
+    setDestination(input);
     fetchPlacePredictions(input);
   };
 
   const handlePredictionSelect = (prediction: any) => {
-    setSearch(prediction.description);
+    setDestination(prediction.description);
     setPredictions([]);
-    fetchRoutes(prediction.description);
   };
 
-  const handleRoutePress = (route: Route) => {
-    console.log("Selected route:", route); // Debugging log
-    setSelectedRoute(route);
-    setIsModalVisible(true);
-  };
+const handleSearch = async () => {
+  if (destination.trim()) {
+    if (!currentLocation) {
+      Alert.alert("Error", "Current location not available. Please try again.");
+      return;
+    }
 
-  const handleNavigate = () => {
-    setIsModalVisible(false);
-    // Navigate to the map page with the selected route details
-    navigation.navigate('index', { route: selectedRoute });
-  };
+    try {
+      // Convert the destination to coordinates using Geocoder
+      const response = await Geocoder.from(destination);
+      const destinationCoords = response.results[0].geometry.location;
 
-  const renderButton = ({ item }: { item: ButtonData }) => (
-    <Button
-      mode="contained"
-      style={styles.searchButton}
-      onPress={() => {
-        setSearch(item.title);
-        handleSearchSubmit();
-      }}
-      icon={({ size, color }) => (
-        <Icon name={item.icon} type="font-awesome-5" color="white" size={size} />
-      )}
-    >
-      {item.title}
-    </Button>
-  );
+      // Prepare request body for the custom API
+      const body = {
+        api_key: "AIzaSyCuosz_XkI9j-EPgWHnuXDAo1mEMYDEN_k",
+        start_coords: [currentLocation.latitude, currentLocation.longitude],
+        end_coords: [destinationCoords.lat, destinationCoords.lng],
+        bucket_name: "gcf-sources-1036555436109-europe-west2",
+        csv_file_path: "finaldata.csv",
+        crime_weight: 2, // Different weight
+        load_shedding_weight: 0 // Different weight
+      };
 
-  const renderRoute = ({ item, index }: { item: Route; index: number }) => (
-    <TouchableOpacity key={index} onPress={() => handleRoutePress(item)}>
-      <Card style={[styles.routeCard, index === 0 ? styles.safestRoute : styles.shortestRoute]}>
-        <Card.Content>
-          <Text style={styles.routeText}>Summary: {item.summary}</Text>
-          <Text style={styles.routeText}>Duration: {item.duration}</Text>
-          <Text style={styles.routeText}>Distance: {item.distance}</Text>
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
-  );
+      console.log("Request Body:", JSON.stringify(body));
+
+      // Call the custom API
+      const apiResponse = await axios.post(
+        'https://europe-west2-gradhack-2024-the-cookout.cloudfunctions.net/my_route_function',
+        body,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log("API Response:", JSON.stringify(apiResponse.data));
+
+      // Parse the API response
+      const safestRoute = apiResponse.data.safest_route;
+      const shortestRoute = apiResponse.data.shortest_route;
+
+      // Create routes array
+      const routes = [
+        {
+          duration: safestRoute.duration || "unknown",
+          distance: safestRoute.distance,
+          summary: "Safest Route",
+          polyline: safestRoute.polyline,
+        },
+        {
+          duration: shortestRoute.duration || "unknown",
+          distance: shortestRoute.distance,
+          summary: "Shortest Route",
+          polyline: shortestRoute.polyline,
+        },
+      ];
+
+      setRoutes(routes);
+      setContextDestination(destination);
+      navigation.navigate('index' as never);
+
+    } catch (error) {
+      console.error("Error fetching route data:", error);
+      Alert.alert("Error", "Failed to fetch route data. Please try again.");
+    }
+  } else {
+    Alert.alert("Error", "Please enter a destination");
+  }
+};
+
+
+
 
   const renderPrediction = ({ item }: { item: any }) => (
     <TouchableOpacity onPress={() => handlePredictionSelect(item)}>
@@ -206,108 +152,98 @@ const SearchPage: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        mode="outlined"
-        style={styles.searchBar}
-        placeholder="Where to?"
-        onChangeText={handleSearchChange}
-        value={search}
-        onSubmitEditing={handleSearchSubmit}
-      />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <IconButton icon="arrow-left" onPress={() => navigation.goBack()} />
+        <Text style={styles.headerText}>Search</Text>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          mode="outlined"
+          style={styles.input}
+          placeholder="Current Location"
+          value={origin}
+          editable={false}
+          left={<TextInput.Icon icon="map-marker" />}
+        />
+        <TextInput
+          mode="outlined"
+          style={styles.input}
+          placeholder="Where to?"
+          onChangeText={handleDestinationChange}
+          value={destination}
+          left={<TextInput.Icon icon="magnify" />}
+        />
+      </View>
+
       <FlatList
         data={predictions}
         renderItem={renderPrediction}
         keyExtractor={(item) => item.place_id}
-        contentContainerStyle={styles.predictionList}
+        style={styles.predictionList}
       />
-      <FlatList
-        data={buttonData}
-        renderItem={renderButton}
-        keyExtractor={(item) => item.id}
-        horizontal
-        contentContainerStyle={styles.buttonList}
-      />
-      <ScrollView>
-        {routes && routes.map((route, index) => renderRoute({ item: route, index }))}
-      </ScrollView>
-      <Pressable style={styles.linkButton} onPress={handleSearchSubmit}>
-        <Text style={styles.linkText}>Go</Text>
-      </Pressable>
+
+      <Button
+        mode="contained"
+        onPress={handleSearch}
+        style={styles.searchButton}
+        icon={({ size, color }) => (
+          <MaterialCommunityIcons name="navigation" size={size} color={color} />
+        )}
+      >
+        Search
+      </Button>
+
       <RouteDetailsModal
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
-        onNavigate={handleNavigate}
+        onNavigate={() => {}}
         route={selectedRoute}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: '#3f51b5',
+  },
+  headerText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  inputContainer: {
     padding: 20,
-    backgroundColor: "white",
   },
-  searchBar: {
-    marginBottom: 20,
-  },
-  searchButton: {
-    marginHorizontal: 10,
-    borderRadius: 20,
-    height: 40,
-    justifyContent: "center",
-  },
-  buttonList: {
-    marginTop: 4,
+  input: {
+    marginBottom: 10,
+    backgroundColor: 'white',
   },
   predictionList: {
-    marginBottom: 10,
+    backgroundColor: 'white',
+    marginHorizontal: 20,
   },
   predictionItem: {
-    padding: 10,
+    padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
+    borderBottomColor: "#e0e0e0",
   },
   predictionText: {
     fontSize: 16,
   },
-  linkButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: 10,
-    right: 10,
-    padding: 10,
-    backgroundColor: "#2196F3",
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  linkText: {
-    color: "white",
-    fontSize: 16,
-  },
-  routeCard: {
-    marginVertical: 10,
-    padding: 0,
-    borderRadius: 5,
-    overflow: 'hidden',
-  },
-  routeContent: {
-    padding: 10,
-  },
-  safestRoute: {
-    backgroundColor: "#d4edda",
-    borderLeftWidth: 4,
-    borderColor: "green",
-  },
-  shortestRoute: {
-    backgroundColor: "#f8d7da",
-    borderLeftWidth: 4,
-    borderColor: "red",
-  },
-  routeText: {
-    fontSize: 16,
+  searchButton: {
+    margin: 20,
+    paddingVertical: 8,
   },
 });
 
