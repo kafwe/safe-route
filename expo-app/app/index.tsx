@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, StyleSheet, Text, SafeAreaView, ScrollView, Alert } from "react-native";
+import { View, StyleSheet, Text, SafeAreaView, ScrollView, Alert, LogBox } from "react-native";
 import { useNavigation } from "expo-router";
 import { IconButton, Button, useTheme, ActivityIndicator } from "react-native-paper";
 import MapView, { Polyline, Marker } from 'react-native-maps';
@@ -10,6 +10,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import openMap from 'react-native-open-maps';
 import axios from 'axios';
 import supabase from "@/lib/supabase/supabaseConfig";
+
+// Suppress warning messages
+LogBox.ignoreAllLogs();
 
 const MainPage = () => {
   const [mode, setMode] = useState('drive');
@@ -121,7 +124,7 @@ const MainPage = () => {
           distance: apiResponse.data.safest_route.distance,
           summary: "Safest Route",
           polyline: apiResponse.data.safest_route.polyline,
-          color: 'Green',
+          color: 'green',
           dangerScore: apiResponse.data.safest_route.danger_score,
           crimeNumber: apiResponse.data.safest_route.total_crime_number,
           loadSheddingCount: apiResponse.data.safest_route.total_load_shedding_count,
@@ -131,7 +134,7 @@ const MainPage = () => {
           distance: apiResponse.data.shortest_route.distance,
           summary: "Shortest Route",
           polyline: apiResponse.data.shortest_route.polyline,
-          color: 'Blue',
+          color: 'blue',
           dangerScore: "N/A", // Not provided for shortest route
           crimeNumber: apiResponse.data.shortest_route.total_crime_number,
           loadSheddingCount: apiResponse.data.shortest_route.total_load_shedding_count,
@@ -209,13 +212,13 @@ const MainPage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-     <View style={styles.header}>
-  <IconButton 
-    icon="menu" 
-    onPress={() => navigation.navigate('SearchPage' as never)} 
-  />
-  <Text style={styles.headerText}>{destinationName || "Select Destination"}</Text>
-</View>
+      <View style={styles.header}>
+        <IconButton 
+          icon="menu" 
+          onPress={() => navigation.navigate('SearchPage' as never)} 
+        />
+        <Text style={styles.headerText}>{destinationName || "Select Destination"}</Text>
+      </View>
 
       <View style={styles.segmentedButtons}>
         {[
@@ -265,6 +268,7 @@ const MainPage = () => {
               key={index}
               coordinates={decodePolyline(route.polyline)}
               strokeWidth={3}
+              strokeColor={route.color}
             />
           ) : null
         ))}
@@ -346,14 +350,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
-  routeBoxGreen: {
+  routeBoxgreen: {
     backgroundColor: '#b0e57c',
   },
-  routeBoxBlue: {
+  routeBoxblue: {
     backgroundColor: '#7fcaff',
-  },
-  routeBoxPurple: {
-    backgroundColor: '#d4aaff',
   },
   routeTime: {
     fontSize: 24,
