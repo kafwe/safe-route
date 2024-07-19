@@ -10,11 +10,70 @@
     5. run this script "python script.py"
     6. deactivate ox "~/miniconda3/bin/conda deactivate"
 """
+from typing import Tuple
 import osmnx as ox
 import networkx as nx
 import matplotlib.pyplot as plt
 from shapely.geometry import LineString, Point, box, mapping
 import urllib.parse
+
+import json
+from typing import List, Dict, Union, Optional
+
+# Example usage
+supabase_url = "https://cbkorawwmcaodhiakigh.supabase.co"
+supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNia29yYXd3bWNhb2RoaWFraWdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAzMTg1MDIsImV4cCI6MjAzNTg5NDUwMn0.gnsux_t7TW0bBdpu2pH1dI09GAKrbvAk75ffF0Jgqyc"
+
+
+class Info:
+    def __init__(
+        self,
+        source: List[float],
+        destination: List[float],
+        travel_type: str,
+        polyline: str,
+        waypoints: List[List[float]],
+        distance: float,
+        google_deeplink: str,
+        trip_summary: Optional[Dict[str, Union[int, bool, float]]] = None
+    ):
+        self.source = source
+        self.destination = destination
+        self.travel_type = travel_type
+        self.polyline = polyline
+        self.waypoints = waypoints
+        self.distance = distance
+        self.google_deeplink = google_deeplink
+        self.trip_summary = trip_summary or {}
+
+    def to_dict(self) -> Dict:
+        return {
+            "source": self.source,
+            "destination": self.destination,
+            "travelType": self.travel_type,
+            "polyline": self.polyline,
+            "waypoints": self.waypoints,
+            "distance": self.distance,
+            "google_deeplink": self.google_deeplink,
+            "trip_summary": self.trip_summary
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'Info':
+        return cls(
+            source=data["source"],
+            destination=data["destination"],
+            travel_type=data["travelType"],
+            polyline=data["polyline"],
+            waypoints=data["waypoints"],
+            distance=data["distance"],
+            google_deeplink=data["google_deeplink"],
+            legs=data["legs"],
+            trip_summary=data.get("trip_summary")
+        )
 
 
 def get_node_id_from_address(address, G):
@@ -299,9 +358,11 @@ def get_edge_by_osm_id(G, osm_id):
     """
     for u, v, data in G.edges(data=True):
         if data.get('osmid') == osm_id:
+            if data.get('length') is None:
+                data['length'] = 0
             return (u, v, data)
 
-    return None
+    return (0,0, {"distance": 0})
 
 
 def add_data_to_edge_by_osm_id(G, osm_id, data):
@@ -365,7 +426,6 @@ def format_waypoints_for_google_maps_deeplink(G, path):
     return "|".join(waypoints)
 
 
-
 def example_flow():
     # 1. start by defining the source and destination points as a tuple of (latitude, longitude)
     source = (-26.077702, 27.950062)
@@ -414,9 +474,202 @@ def example_flow():
         print("Google Maps deep link:", deeplink)
 
 
+from supabase import create_client
+from dataclasses import dataclass, field
+from typing import List
+
+@dataclass
+class DBTrip:
+    legs: List[str]
+    theft_out_of_or_from_motor_vehicle: int = 0
+    stock_theft: int = 0
+    theft_of_motor_vehicle_and_motorcycle: int = 0
+    burglary_at_residential_premises: int = 0
+    burglary_at_non_residential_premises: int = 0
+    murder: int = 0
+    common_assault: int = 0
+    trio_crime: int = 0
+    rape: int = 0
+    bank_robbery: int = 0
+    robbery_at_residential_premises: int = 0
+    assault_with_the_intent_to_inflict_grievous_bodily_harm: int = 0
+    truck_hijacking: int = 0
+    robbery_of_cash_in_transit: int = 0
+    common_robbery: int = 0
+    attempted_sexual_offences: int = 0
+    attempted_murder: int = 0
+    carjacking: int = 0
+    sexual_assault: int = 0
+    robbery_at_non_residential_premises: int = 0
+    contact_sexual_offences: int = 0
+    load_shedding: int = 0
+    total_crime_count: int = 0
+    danger_score: int = 0
+    trip_data: Info = 0
+
+    def __str__(self):
+        result = [f"Trip with {len(self.legs)} legs:"]
+        result.append(f"Total crime count: {self.total_crime_count}")
+        result.append(f"Total loadshedding count: {self.load_shedding}")
+        for attr, value in self.__dict__.items():
+            if attr not in ['legs', 'total_crime_count']:
+                result.append(f"{attr.replace('_', ' ').capitalize()}: {value}")
+        return "\n".join(result)
+    
+    def set_danger_score(self, score):
+        self.danger_score = score
+
+from collections import defaultdict
+
+def create_trip(osmids: List[Union[str, int]], supabase_url: str, supabase_key: str) -> DBTrip:
+    supabase = create_client(supabase_url, supabase_key)
+
+    # Convert all OSMIDs to strings
+    osmids = [str(osmid) for osmid in osmids]
+
+    trip = DBTrip(legs=osmids)
+
+    # Create a string representation of the OSMID array for the query
+    osmids_query = f"{{{'{'}{','.join(osmids)}{'}'}}}"
+
+    # Make a single query to fetch data for all OSMIDs
+    response = supabase.table('crime_data').select('*').filter('osmid', 'ov', osmids_query).execute()
+
+    # Use a defaultdict to accumulate the maximum values for each attribute
+    max_values = defaultdict(int)
+
+    for crime_data in response.data:
+        for attr, value in crime_data.items():
+            if attr != 'osmid' and hasattr(trip, attr):
+                max_values[attr] = max(max_values[attr], value or 0)
+
+    # Set the trip attributes to the maximum values
+    for attr, value in max_values.items():
+        setattr(trip, attr, value)
+
+    # Calculate total crime count
+    trip.total_crime_count = sum([getattr(trip, attr) for attr in trip.__dict__ if attr not in ['legs', 'total_crime_count', 'load_shedding']])
+
+    return trip
+
+def get_path_distance_from_osm_ids(G, osm_ids):
+    distance = 0
+    for osm_id in osm_ids:
+        edge = get_edge_by_osm_id(G, osm_id)
+        # print("Edge:", edge)
+        distance += list(edge)[2].get('length', 0)
+    return distance
+
+def dangerScore(trip, is_walking, crime_weights=None, load_shedding_weight=1):
+    if crime_weights is None:
+        crime_weights = {
+            'theft_out_of_or_from_motor_vehicle': 3 if not is_walking else 1,
+            'stock_theft': 1,
+            'theft_of_motor_vehicle_and_motorcycle': 4 if not is_walking else 1,
+            'burglary_at_residential_premises': 2,
+            'burglary_at_non_residential_premises': 2,
+            'murder': 10,
+            'common_assault': 5,
+            'trio_crime': 4,
+            'rape': 9,
+            'bank_robbery': 3,
+            'robbery_at_residential_premises': 4,
+            'assault_with_the_intent_to_inflict_grievous_bodily_harm': 7,
+            'truck_hijacking': 3 if not is_walking else 1,
+            'robbery_of_cash_in_transit': 2,
+            'common_robbery': 4,
+            'attempted_sexual_offences': 6,
+            'attempted_murder': 8,
+            'carjacking': 6 if not is_walking else 2,
+            'sexual_assault': 8,
+            'robbery_at_non_residential_premises': 3,
+            'contact_sexual_offences': 7
+        }
+
+    total_score = 0
+
+    for crime_type, weight in crime_weights.items():
+        if hasattr(trip, crime_type):
+            total_score += getattr(trip, crime_type) * weight
+
+    total_score += trip.load_shedding * load_shedding_weight
+
+    return total_score
+
+def request(source, destination, navigation_type='drive'):
+
+    G = get_graph_between_points(source, destination)
+    path, status = get_shortest_path(G, source, destination, num_paths=10)
+    # 5. get the paths
+    paths = list(path)
+    # 6. get the osm ids for each leg of the paths
+    path_osm_ids = [get_path_osm_ids(G, path) for path in paths]
+
+
+
+    trips = []
+    # for each path of osm ids, create a trip
+    for ids in path_osm_ids:
+        trip = create_trip(ids, supabase_url, supabase_key)
+        trips.append(trip)
+        # print("OSM IDs:", ids)
+
+
+    for trip in trips:
+        # calculate the danger score
+        score = dangerScore(trip, is_walking=False)
+        trip.set_danger_score(score)
+
+    # sort the trips by danger score
+    trips.sort(key=lambda trip: trip.danger_score, reverse=True)
+
+    # take the 4 safest trips
+    safest_trips = trips[:4]
+
+    i = 0
+    for trip in safest_trips:
+        polyline = get_polyline_from_path(G, paths[i])
+        encoded_polyline = encode_polyline(polyline)
+        waypoints = format_waypoints_for_google_maps_deeplink(G, paths[i])
+        deeplink = create_google_maps_deeplink(
+            origin=f"{source[0]},{source[1]}", destination=f"{destination[0]},{destination[1]}", formatted_waypoints=waypoints)
+        
+        trip_summary_info = {
+            "total_crimes": trip.total_crime_count,
+            "power_outage_in_route": trip.load_shedding,
+            "distance": get_path_distance_from_osm_ids(G, path_osm_ids[i]),
+            "risk_score": trip.danger_score
+        }
+
+        trip_data = Info(
+            source=[source[0], source[1]],
+            destination=[destination[0], destination[1]],
+            travel_type="driving",
+            polyline=encoded_polyline,
+            waypoints=waypoints,
+            distance=trip_summary_info['distance'],
+            google_deeplink=deeplink,
+            trip_summary=trip_summary_info
+        )
+        trip.trip_data = trip_data
+        i += 1
+
+    # print the safest trips
+    for trip in safest_trips:
+        print(trip.trip_data.to_dict())
+        print()
+
+    return safest_trips
 
 def main():
-    example_flow()
+
+    source = (-26.077702, 27.950062)
+    destination = (-26.081334, 27.935728)
+    # destination = (-25.756415, 28.229561) # pretoria
+    request(source, destination)
 
 if __name__ == "__main__":
     main()
+    # example_flow()
+    # print("Done")
+
