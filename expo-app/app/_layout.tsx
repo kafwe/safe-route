@@ -12,6 +12,8 @@ import { ToastProvider } from "react-native-paper-toast";
 import User from "@/lib/types/user";
 import { NavigationProvider } from "@/components/navigation/NavigationContext";
 
+import { TripData, TripsContext } from "@/lib/contexts/tripsContext";
+
 import AuthContext from "@/lib/contexts/authContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -23,6 +25,7 @@ export default function RootLayout() {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
   const [user, setUser] = useState<User | undefined>(undefined);
+  const [trips, setTrips] = useState<TripData[]>([]);
 	const router = useRouter();
 
 
@@ -40,6 +43,7 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <PaperProvider>
       <ToastProvider>
+        <TripsContext.Provider value={{ trips, setTrips }}>
         <NavigationProvider>
           <Stack>
             <Stack.Screen
@@ -53,17 +57,19 @@ export default function RootLayout() {
                 headerShown: false,
               }}
             />
-            <Stack.Screen
+            {/* <Stack.Screen
               name="onboarding/car"
               options={{ headerShown: false }}
             />
             <Stack.Screen
               name="onboarding/preferences"
               options={{ headerShown: false }}
-            />
+            /> */}
             <Stack.Screen
               name="SearchPage"
-              options={{ title: "Search" }}
+              options={{ title: "Search", 
+                headerShown: false,
+              }}
             />
             <Stack.Screen
               name="report"
@@ -76,6 +82,7 @@ export default function RootLayout() {
             <Stack.Screen name="+not-found" />
           </Stack>
         </NavigationProvider>
+        </TripsContext.Provider>
         </ToastProvider>
       </PaperProvider>
     </ThemeProvider>

@@ -1,19 +1,20 @@
 from flask import Flask, request as flask_request, jsonify
-from flask_cors import CORS
 import osmnx as ox
 import networkx as nx
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point
 import urllib.parse
+import json
 from typing import List, Dict, Union, Optional
+from supabase import create_client
 from dataclasses import dataclass
 from collections import defaultdict
 from functools import lru_cache
 from math import radians, sin, cos, sqrt, atan2
-import concurrent.futures
-from supabase import create_client, Client
 
 supabase_url = "https://cbkorawwmcaodhiakigh.supabase.co"
 supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNia29yYXd3bWNhb2RoaWFraWdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAzMTg1MDIsImV4cCI6MjAzNTg5NDUwMn0.gnsux_t7TW0bBdpu2pH1dI09GAKrbvAk75ffF0Jgqyc"
+app = Flask(__name__)
+
 
 @dataclass
 class Info:
@@ -67,61 +68,8 @@ class DBTrip:
     danger_score: int = 0
     trip_data: Info = None
 
-@lru_cache(maxsize=1)
-def get_cached_graph(source, destination, mode='drive'):
-    # ... (keep the existing get_graph_between_points function, but rename it)
-    # This function will now be cached for repeated use
-    G = get_graph_between_points(source, destination, mode)
-    # Convert MultiGraph to Graph
-    return G
-
 @lru_cache(maxsize=32)
-def get_graph_between_points(source, destination, graph=None):
-    """
-    Get the graph between two points. If the graph is not provided or the points are not in the graph, a new graph is created.
-    If the graph is provided and the points are in the graph, the graph is returned.
-    If the graph is provided and the points are not in the graph, a new graph is created and composed with the provided graph.
-
-    Parameters:
-    - source (tuple): The source point (lat, lon)
-    - destination (tuple): The destination point (lat, lon)
-
-    Returns:
-    - networkx.MultiDiGraph: The graph between the two points
-    """
-    buffer = 0.005  # Adjust this value as needed
-
-    def get_graph_between_points_helper():
-        north = max(source[0], destination[0]) + buffer
-        south = min(source[0], destination[0]) - buffer
-        east = max(source[1], destination[1]) + buffer
-        west = min(source[1], destination[1]) - buffer
-        # Get the graph for the bounding box
-        graph = ox.graph_from_bbox(
-            bbox=(north, south, east, west), network_type="all")
-        return graph
-
-    # points_in_graph = are_coordinates_in_graph(
-    #     graph, source, destination) if graph is not None else False
-
-    graph = get_graph_between_points_helper()
-    # if graph is None or not points_in_graph:
-    #     print(
-    #         f"New graph created. Nodes: {len(graph.nodes)}, Edges: {len(graph.edges)}")
-    # elif graph is not None and points_in_graph:
-    #     print(
-    #         f"Using existing graph. Nodes: {len(graph.nodes)}, Edges: {len(graph.edges)}")
-    # elif graph is not None and not points_in_graph:
-    #     new_graph = get_graph_between_points_helper()
-    #     graph = nx.compose(graph, new_graph)
-    #     print(
-    #         f"Graph composed. Nodes: {len(graph.nodes)}, Edges: {len(graph.edges)}")
-
-    return graph
-
-
-@lru_cache(maxsize=32)
-def get_graph_between_points_old(source, destination, mode='drive'):
+def get_graph_between_points(source, destination, mode='drive'):
     # Calculate distance between points
     def haversine_distance(lat1, lon1, lat2, lon2):
         R = 6371  # Earth's radius in kilometers
@@ -152,10 +100,6 @@ def get_graph_between_points_old(source, destination, mode='drive'):
         network_type = "drive_service"
         custom_filter = '["highway"~"motorway|trunk|primary"]'
 
-    network_type = "all"
-    custom_filter = '["highway"~"motorway|trunk|primary|secondary|tertiary|residential"]'
-
-
     # Calculate bounding box
     north = max(source[0], destination[0]) + buffer
     south = min(source[0], destination[0]) - buffer
@@ -173,15 +117,16 @@ def get_graph_between_points_old(source, destination, mode='drive'):
     # Get the graph with custom filter
     G = ox.graph_from_bbox(north, south, east, west, network_type=network_type, 
                            custom_filter=custom_filter, simplify=simplify, retain_all=retain_all)
-
-    # For walking mode and short distances, we might want to include additional data
-    if mode == 'walk' and distance < 5:
-        G = ox.add_edge_speeds(G)
-        G = ox.add_edge_travel_times(G)
-
     return G
 
-def get_shortest_paths(G, origin, destination, num_paths=10):
+# @lru_cache(maxsize=128)
+# def get_shortest_path(G, origin, destination, num_paths=5):
+#     origin_node = ox.distance.nearest_nodes(G, Y=origin[0], X=origin[1])
+#     destination_node = ox.distance.nearest_nodes(G, Y=destination[0], X=destination[1])
+#     return list(ox.k_shortest_paths(G, origin_node, destination_node, k=num_paths, weight="length"))
+
+@lru_cache(maxsize=128)
+def get_shortest_path(G, origin, destination, num_paths=5):
     """
     Get the shortest path between two coordinates.
 
@@ -197,14 +142,18 @@ def get_shortest_paths(G, origin, destination, num_paths=10):
     """
     print("Finding shortest path between", origin, destination)
 
-    # check if the origin and destination are in the graph
+    # # check if the origin and destination are in the graph
     # if not are_coordinates_in_graph(G, origin, destination):
     #     return None, {"error": "Coordinates not in graph"}
 
+    # round the coordinates to 6 decimal places
+    origin = tuple(round(coord, 6) for coord in origin)
+    destination = tuple(round(coord, 6) for coord in destination)
+
     # Get the nearest nodes to the origin and destination
-    origin_node = ox.distance.nearest_nodes(G, Y=origin[0], X=origin[1])
+    origin_node = ox.distance.nearest_nodes(G, Y=origin[1], X=origin[0])
     destination_node = ox.distance.nearest_nodes(
-        G, Y=destination[0], X=destination[1])
+        G, Y=destination[1], X=destination[0])
 
     # Find the shortest path between the origin and destination
     shortest_path = ox.k_shortest_paths(
@@ -213,16 +162,6 @@ def get_shortest_paths(G, origin, destination, num_paths=10):
     return shortest_path, {"success": "Shortest path found"}
 
 
-def get_shortest_paths_old(G, origin, destination, num_paths=10):
-    origin_node = ox.distance.nearest_nodes(G, Y=origin[0], X=origin[1])
-    destination_node = ox.distance.nearest_nodes(G, Y=destination[0], X=destination[1])
-    
-    paths = []
-    for path in nx.shortest_simple_paths(G, origin_node, destination_node, weight="length"):
-        paths.append(path)
-        if len(paths) == num_paths:
-            break
-    return paths
 
 def encode_polyline(coords, precision=5):
     def encode_number(num):
@@ -244,17 +183,18 @@ def encode_polyline(coords, precision=5):
     return ''.join(result)
 
 def create_google_maps_deeplink(origin, destination, formatted_waypoints=None, travel_mode="driving"):
-    base_url = "https://www.google.com/maps/dir/?api=1"
+    base_url = "https://www.google.com/maps/dir/"
     params = {
+        "api": 1,
         "origin": f"{origin[0]},{origin[1]}",
         "destination": f"{destination[0]},{destination[1]}",
         "travelmode": travel_mode,
+        "dir_action": "navigate"
     }
     if formatted_waypoints:
         params["waypoints"] = formatted_waypoints
-    
-    query_string = urllib.parse.urlencode(params, safe=",")
-    return f"{base_url}&{query_string}"
+    query_string = urllib.parse.urlencode(params, safe=",|")
+    return f"{base_url}?{query_string}"
 
 def create_trip(osmids: List[Union[str, int]], supabase):
     osmids = [str(osmid) for osmid in osmids]
@@ -313,92 +253,71 @@ def dangerScore(trip, is_walking):
     
     return min(100, (raw_score / max_score) * 100)
 
-def process_path(G, path, source, destination, navigation_type, supabase):
-    osmids = []
-    
-    for i in range(len(list(path)) - 1):
-        edge_data = G.get_edge_data(path[i], path[i+1])
-        if edge_data and 'osmid' in edge_data:
-            osmids.append(edge_data['osmid'])
-        else:
-            osmids.append(None)  # or some default value if osmid is not available
-
-    trip = create_trip(osmids, supabase)
-    trip.danger_score = dangerScore(trip, is_walking=(navigation_type == 'walk'))
-    
-    polyline = LineString([G.nodes[node]['y'], G.nodes[node]['x']] for node in path)
-    encoded_polyline = encode_polyline(polyline.coords)
-    waypoints = "|".join(f"{G.nodes[node]['y']},{G.nodes[node]['x']}" for node in path[1:-1])
-    travel_mode = "walking" if navigation_type == 'walk' else "driving" if navigation_type == 'drive' else "drive"
-    deeplink = create_google_maps_deeplink(source, destination, waypoints, travel_mode=travel_mode)
-    
-    distance = sum(G[path[i]][path[i+1]].get('length', 0) for i in range(len(path)-1))
-    
-    trip_summary_info = {
-        "total_crimes": trip.total_crime_count,
-        "power_outage_in_route": trip.load_shedding,
-        "distance": distance,
-        "risk_score": trip.danger_score
-    }
-    
-    trip.trip_data = Info(
-        source=list(source),
-        destination=list(destination),
-        travel_type=navigation_type,
-        polyline=encoded_polyline,
-        waypoints=[list(coord) for coord in polyline.coords],
-        distance=distance,
-        google_deeplink=deeplink,
-        trip_summary=trip_summary_info
-    )
-    return trip
-
 def request(source, destination, navigation_type='drive'):
-    G = get_cached_graph(source, destination, navigation_type)
-    paths_response, status = get_shortest_paths(G, source, destination, num_paths=10)
+    G = get_graph_between_points(source, destination)
+    paths_response, status = get_shortest_path(G, source, destination, num_paths=10)
 
+    
     paths = list(paths_response)
     print(paths)
-    
+
     supabase = create_client(supabase_url, supabase_key)
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future_to_path = {executor.submit(process_path, G, path, source, destination, navigation_type, supabase): path for path in paths}
-        trips = []
-        for future in concurrent.futures.as_completed(future_to_path):
-            trips.append(future.result())
+    trips = []
+    for path in paths:
+        osmids = [G.edges[path[i], path[i+1], 0].get('osmid') for i in range(len(path)-1)]
+        trip = create_trip(osmids, supabase)
+        trip.danger_score = dangerScore(trip, is_walking=(navigation_type == 'walk'))
+        
+        polyline = LineString([G.nodes[node]['y'], G.nodes[node]['x']] for node in path)
+        encoded_polyline = encode_polyline(polyline.coords)
+        waypoints = "|".join(f"{G.nodes[node]['y']},{G.nodes[node]['x']}" for node in path[1:-1])
+        deeplink = create_google_maps_deeplink(source, destination, waypoints)
+        
+        distance = sum(G.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1))
+        
+        trip_summary_info = {
+            "total_crimes": trip.total_crime_count,
+            "power_outage_in_route": trip.load_shedding,
+            "distance": distance,
+            "risk_score": trip.danger_score
+        }
+        
+        trip.trip_data = Info(
+            source=list(source),
+            destination=list(destination),
+            travel_type=navigation_type,
+            polyline=encoded_polyline,
+            waypoints=[list(coord) for coord in polyline.coords],
+            distance=distance,
+            google_deeplink=deeplink,
+            trip_summary=trip_summary_info
+        )
+        trips.append(trip)
 
     return sorted(trips, key=lambda t: t.danger_score)[:4]
 
 def main():
-    # source = (-26.077702, 27.950062)
-    # destination = (-26.081334, 27.935728)
-    # destination = (-26.112641, 27.914288) # friend
-    # safest_trips = request(source, destination)
-
-    discovery = (-26.113180, 28.053153)
-    wits = (-26.193034, 28.033049)
-
-    safest_trips = request(discovery, wits, navigation_type='walk')
+    source = (-26.077702, 27.950062)
+    destination = (-26.081334, 27.935728)
+    destination = (-26.112641, 27.914288) # friend
+    safest_trips = request(source, destination)
     for trip in safest_trips:
         print(trip.trip_data.to_dict())
         print()
 
-app = Flask(__name__)
-CORS(app)  # This enables CORS for all routes
-
 @app.route('/get_safest_trips', methods=['POST'])
 def get_safest_trips():
     data = flask_request.json
-    source = tuple(data.get('source'))
-    destination = tuple(data.get('destination'))
+    source = tuple(data['source'])
+    destination = tuple(data['destination'])
     navigation_type = data.get('navigation_type', 'drive')
 
     safest_trips = request(source, destination, navigation_type)
     
-    response = [trip.trip_data.to_dict() for trip in safest_trips]
-    return jsonify(response)
+    return jsonify([trip.trip_data.to_dict() for trip in safest_trips])
 
 if __name__ == '__main__':
     app.run(debug=True)
-    # main()
+
+    

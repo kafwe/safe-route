@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, StyleSheet, Text, SafeAreaView, ScrollView, Alert } from "react-native";
-import { useNavigation } from "expo-router";
+import { View, StyleSheet, Text, SafeAreaView, ScrollView, Alert, TouchableOpacity, Linking } from "react-native";
+import { useFocusEffect, useNavigation } from "expo-router";
 import { IconButton, Button, useTheme, ActivityIndicator } from "react-native-paper";
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import Geocoder from 'react-native-geocoding';
@@ -10,22 +10,24 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import openMap from 'react-native-open-maps';
 import axios from 'axios';
 import supabase from "@/lib/supabase/supabaseConfig";
+import { TripsContext } from "@/lib/contexts/tripsContext";
 
 const MainPage = () => {
   const [mode, setMode] = useState('drive');
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { setRoutes, routes, destination } = useContext(NavigationContext);
+  
+  const [destinationCoords, setDestinationCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [searchPerformed, setSearchPerformed] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [region, setRegion] = useState({
     latitude: -33.918861,
     longitude: 18.4233,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
-  const [destinationCoords, setDestinationCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [searchPerformed, setSearchPerformed] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [destinationName, setDestinationName] = useState('');
   const [incidents, setIncidents] = useState<{
     address: string | null;
@@ -41,6 +43,16 @@ const MainPage = () => {
     timestamp: string | null;
     type: string | null;
   }[] | null>([]);
+  const { trips } = useContext(TripsContext);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // check if the trips context has been updated
+      if (trips) {
+        
+      }
+    }, [trips])
+  );
 
   useEffect(() => {
     (async () => {
@@ -53,6 +65,12 @@ const MainPage = () => {
       let location = await Location.getCurrentPositionAsync({});
       console.log("Current location:", location.coords);
       setCurrentLocation({ latitude: location.coords.latitude, longitude: location.coords.longitude });
+      setRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.0222,
+        longitudeDelta: 0.0121,
+      });
     })();
   }, []);
 
@@ -60,7 +78,8 @@ const MainPage = () => {
     if (destination) {
       setDestinationName(destination);
       setSearchPerformed(true);
-      fetchRoute(currentLocation, destination);
+      // fetchRoute(currentLocation, destination);
+      fetchRouteNew(currentLocation, destination);
     }
   }, [destination]);
 
@@ -112,7 +131,7 @@ const MainPage = () => {
       );
 
       // Log the API response for debugging
-      console.log("API Response:", apiResponse.data);
+      // console.log("API Response:", apiResponse.data);
 
       // Create routes array
       const routes = [
@@ -142,6 +161,57 @@ const MainPage = () => {
       setDestinationCoords({
         latitude: destinationCoords.lat,
         longitude: destinationCoords.lng,
+      });
+
+    } catch (error) {
+      console.error("Error fetching route data:", error);
+      Alert.alert("Error", "Failed to fetch route data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRouteNew = async (origin, destination) => {
+    const polyLineColors = [
+      "#FF6347", // Tomato
+      "#4682B4", // Steel Blue
+      "#32CD32", // Lime Green
+      "#FF69B4", // Hot Pink
+      "#40E0D0", // Turquoise
+      "#FFA07A", // Light Salmon
+      "#9370DB", // Medium Purple
+      "#FFD700"  // Gold
+    ]    
+
+    if (!origin || !destination) return;
+    try {
+      setLoading(true);
+
+      const routes = [];
+
+      let i = 0;
+      for (const trip of trips) {
+
+        routes.push({
+          duration: "N/A", // API doesn't provide duration
+          distance: trip.distance,
+          summary: "Safe Route",
+          polyline: trip.polyline,
+          color: polyLineColors[i++],
+          dangerScore: trip.trip_summary.risk_score,
+          crimeNumber: trip.trip_summary.total_crimes,
+          loadSheddingCount: trip.trip_summary.power_outage_in_route,
+          deepLink: trip.google_deeplink
+        });
+      }
+
+      // order the routes by risk score
+      routes.sort((a, b) => a.dangerScore - b.dangerScore);
+
+      setRoutes(routes);
+      setDestinationCoords({
+        latitude: trips[0].destination[0],
+        longitude: trips[0].destination[1],
       });
 
     } catch (error) {
@@ -197,11 +267,13 @@ const MainPage = () => {
       console.log("Start:", currentLocation);
       console.log("End:", destinationCoords);
 
-      openMap({
-        start: `${currentLocation.latitude},${currentLocation.longitude}`,
-        end: `${destinationCoords.latitude},${destinationCoords.longitude}`,
-        travelType: mode,
-      });
+      // openMap({
+      //   start: `${currentLocation.latitude},${currentLocation.longitude}`,
+      //   end: `${destinationCoords.latitude},${destinationCoords.longitude}`,
+      //   travelType: mode,
+      // });
+
+      Linking.openURL(trips[0].google_deeplink);
     } else {
       Alert.alert("Error", "No destination coordinates available.");
     }
@@ -209,12 +281,18 @@ const MainPage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <IconButton icon="menu" onPress={() => {}} />
+      {searchPerformed ? <View style={styles.header}>
+        <IconButton icon="undo" iconColor="white" onPress={() => {
+          setRoutes(null);
+          // setDestinationName('');
+          setSearchPerformed(false);
+        }} style={{
+          color: 'black',
+        }} /> 
         <Text style={styles.headerText}>{destinationName || "Select Destination"}</Text>
-      </View>
+      </View>: null}
 
-      <View style={styles.segmentedButtons}>
+      {/* <View style={styles.segmentedButtons}>
         {[
           { mode: 'walk', icon: 'walk', label: 'Walking' },
           { mode: 'drive', icon: 'car', label: 'Driving' }
@@ -231,21 +309,26 @@ const MainPage = () => {
             {option.label}
           </Button>
         ))}
-      </View>
+      </View> */}
 
       {searchPerformed && (
         <View style={styles.routesContainer}>
           <ScrollView horizontal contentContainerStyle={styles.routesScrollView}>
             {routes && routes.map((route, index) => (
-              <View key={index} style={[styles.routeBox, styles[`routeBox${route.color}`]]}>
-                <Text style={styles.routeTime}>{route.summary}</Text>
-                <Text style={styles.routeDistance}>{route.distance} km</Text>
+              <TouchableOpacity key={index} style={[styles.routeBox, styles[`routeBox${route.color}`]]} activeOpacity={1} onPress={
+                // open deep link
+                () => {
+                  Linking.openURL(route.deepLink);
+                }
+              }>
+                <Text style={{...styles.routeTime, color: route.color}}>{route.summary}</Text>
+                <Text style={styles.routeDistance}>{Math.round((route.distance/1000)*100)/100} km</Text>
                 {route.dangerScore !== "N/A" && (
                   <Text style={styles.routeInfo}>Danger Score: {route.dangerScore}</Text>
                 )}
                 <Text style={styles.routeInfo}>Crimes: {route.crimeNumber}</Text>
                 <Text style={styles.routeInfo}>Load Shedding: {route.loadSheddingCount}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
@@ -262,6 +345,10 @@ const MainPage = () => {
               key={index}
               coordinates={decodePolyline(route.polyline)}
               strokeWidth={3}
+              strokeColors={[route.color]}
+              onPress={() => {
+                Linking.openURL(route.deepLink);
+              }}
             />
           ) : null
         ))}
@@ -294,7 +381,7 @@ const MainPage = () => {
           icon="alert-octagon"
           iconColor={colors.error}
           size={40}
-          onPress={() => navigation.navigate('ReportPage' as never)}
+          onPress={() => navigation.navigate('report' as never)}
         />
       </View>
     </SafeAreaView>
@@ -309,6 +396,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    textAlign: 'center',
     padding: 10,
     backgroundColor: '#3f51b5',
   },
@@ -317,6 +405,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 10,
+    minHeight: 40,
+    maxWidth: '80%',
   },
   segmentedButtons: {
     flexDirection: 'row',
@@ -375,7 +465,7 @@ const styles = StyleSheet.create({
   },
   reportButton: {
     position: "absolute",
-    bottom: 80,
+    bottom: 120,
     right: 10,
   },
 });

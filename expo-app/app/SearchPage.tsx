@@ -14,6 +14,8 @@ interface Route {
   summary: string;
   polyline: string;
 }
+import { TripsContext } from "@/lib/contexts/tripsContext";
+import { set } from "react-hook-form";
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCuosz_XkI9j-EPgWHnuXDAo1mEMYDEN_k';
 
@@ -25,6 +27,7 @@ const SearchPage: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { setRoutes, setDestination: setContextDestination, routes, selectedRoute, setSelectedRoute } = useContext(NavigationContext) || {};
   const { colors } = useTheme();
+  const {trips, setTrips} = useContext(TripsContext)
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -105,7 +108,22 @@ const handleSearch = async () => {
         }
       );
 
-      console.log("API Response:", JSON.stringify(apiResponse.data));
+      console.log("new API url:", process.env.EXPO_PUBLIC_API + '/get_safest_trips');
+      console.log("body:", {
+        "source": [currentLocation.latitude, currentLocation.longitude],
+        "destination": [destinationCoords.lat, destinationCoords.lng],
+        "navigation_type": "drive"
+      });
+      const newApiRes = await axios.post(
+        process.env.EXPO_PUBLIC_API + '/get_safest_trips', {
+          "source": [currentLocation.latitude, currentLocation.longitude],
+          "destination": [destinationCoords.lat, destinationCoords.lng],
+          "navigation_type": "drive"
+        }
+      )
+      console.log("new API response:", newApiRes.data);
+      setTrips(newApiRes.data);
+
 
       // Parse the API response
       const safestRoute = apiResponse.data.safest_route;
@@ -154,7 +172,7 @@ const handleSearch = async () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <IconButton icon="arrow-left" onPress={() => navigation.goBack()} />
+        <IconButton icon="arrow-left" iconColor="white" onPress={() => navigation.goBack()} />
         <Text style={styles.headerText}>Search</Text>
       </View>
 
