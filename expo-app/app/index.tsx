@@ -75,13 +75,13 @@ const MainPage = () => {
   }, []);
 
   useEffect(() => {
-    if (destination) {
+    if (destination || trips.length > 0) {
       setDestinationName(destination);
       setSearchPerformed(true);
       // fetchRoute(currentLocation, destination);
       fetchRouteNew(currentLocation, destination);
     }
-  }, [destination]);
+  }, [trips, destination]);
 
   useEffect(() => {
     (async () => {

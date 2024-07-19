@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 import { View, StyleSheet, FlatList, Text, Alert, ScrollView, TouchableOpacity, SafeAreaView } from "react-native";
-import { TextInput, Button, useTheme, IconButton } from "react-native-paper";
+import { TextInput, Button, useTheme, IconButton, ActivityIndicator } from "react-native-paper";
 import axios from "axios";
 import { NavigationContext } from "@/components/navigation/NavigationContext";
 import * as Location from 'expo-location';
@@ -25,6 +25,7 @@ const SearchPage: React.FC = () => {
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const [predictions, setPredictions] = useState<any[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { setRoutes, setDestination: setContextDestination, routes, selectedRoute, setSelectedRoute } = useContext(NavigationContext) || {};
   const { colors } = useTheme();
   const {trips, setTrips} = useContext(TripsContext)
@@ -50,7 +51,7 @@ const SearchPage: React.FC = () => {
     }
     try {
       const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${input}&key=${GOOGLE_MAPS_API_KEY}`
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${input}&key=${GOOGLE_MAPS_API_KEY}&components=country:za`
       );
       if (response.data.status === 'OK') {
         setPredictions(response.data.predictions);
@@ -73,6 +74,7 @@ const SearchPage: React.FC = () => {
   };
 
 const handleSearch = async () => {
+  setLoading(true);
   if (destination.trim()) {
     if (!currentLocation) {
       Alert.alert("Error", "Current location not available. Please try again.");
@@ -98,15 +100,15 @@ const handleSearch = async () => {
       console.log("Request Body:", JSON.stringify(body));
 
       // Call the custom API
-      const apiResponse = await axios.post(
-        'https://europe-west2-gradhack-2024-the-cookout.cloudfunctions.net/my_route_function',
-        body,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      // const apiResponse = await axios.post(
+      //   'https://europe-west2-gradhack-2024-the-cookout.cloudfunctions.net/my_route_function',
+      //   body,
+      //   {
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //     },
+      //   }
+      // );
 
       console.log("new API url:", process.env.EXPO_PUBLIC_API + '/get_safest_trips');
       console.log("body:", {
@@ -126,26 +128,26 @@ const handleSearch = async () => {
 
 
       // Parse the API response
-      const safestRoute = apiResponse.data.safest_route;
-      const shortestRoute = apiResponse.data.shortest_route;
+      // const safestRoute = apiResponse.data.safest_route;
+      // const shortestRoute = apiResponse.data.shortest_route;
 
       // Create routes array
-      const routes = [
-        {
-          duration: safestRoute.duration || "unknown",
-          distance: safestRoute.distance,
-          summary: "Safest Route",
-          polyline: safestRoute.polyline,
-        },
-        {
-          duration: shortestRoute.duration || "unknown",
-          distance: shortestRoute.distance,
-          summary: "Shortest Route",
-          polyline: shortestRoute.polyline,
-        },
-      ];
+      // const routes = [
+      //   {
+      //     duration: safestRoute.duration || "unknown",
+      //     distance: safestRoute.distance,
+      //     summary: "Safest Route",
+      //     polyline: safestRoute.polyline,
+      //   },
+      //   {
+      //     duration: shortestRoute.duration || "unknown",
+      //     distance: shortestRoute.distance,
+      //     summary: "Shortest Route",
+      //     polyline: shortestRoute.polyline,
+      //   },
+      // ];
 
-      setRoutes(routes);
+      // setRoutes(routes);
       setContextDestination(destination);
       navigation.navigate('index' as never);
 
@@ -156,6 +158,7 @@ const handleSearch = async () => {
   } else {
     Alert.alert("Error", "Please enter a destination");
   }
+  setLoading(false);
 };
 
 
@@ -171,6 +174,19 @@ const handleSearch = async () => {
 
   return (
     <SafeAreaView style={styles.container}>
+
+
+      {loading ? 
+      <View style={{
+        position: 'absolute',
+        top: "50%",
+        left: "50%",
+        zIndex: 100,
+      }}>
+        <ActivityIndicator size="large" color={colors.primary} animating={true} />
+      </View>
+         : null}
+
       <View style={styles.header}>
         <IconButton icon="arrow-left" iconColor="white" onPress={() => navigation.goBack()} />
         <Text style={styles.headerText}>Search</Text>

@@ -8,6 +8,8 @@ import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { PaperProvider } from "react-native-paper";
 import { ToastProvider } from "react-native-paper-toast";
+import { LogBox } from 'react-native';
+
 
 import User from "@/lib/types/user";
 import { NavigationProvider } from "@/components/navigation/NavigationContext";
@@ -27,6 +29,7 @@ export default function RootLayout() {
   const [user, setUser] = useState<User | undefined>(undefined);
   const [trips, setTrips] = useState<TripData[]>([]);
 	const router = useRouter();
+  LogBox.ignoreAllLogs();
 
 
   useEffect(() => {
